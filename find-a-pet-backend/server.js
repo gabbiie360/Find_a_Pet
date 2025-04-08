@@ -22,9 +22,16 @@ app.use('/api/test', testRoutes);
 app.use('/api/reports', reportRoutes);
 
 // Conexión a MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ Conectado a MongoDB'))
-  .catch(err => console.error('❌ Error al conectar:', err));
+mongoose.connect(process.env.MONGO_URI, {
+  tlsAllowInvalidCertificates: true,
+  serverApi: { version: '1', strict: true, deprecationErrors: true }
+})
+.then(() => console.log('✅ Conectado a MongoDB'))
+.catch(err => console.error('❌ Error al conectar a MongoDB:', err));
+
+
+
+
 
 // Ruta base
 app.get('/', (req, res) => {
