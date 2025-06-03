@@ -121,4 +121,40 @@ const services = [
   font-size: 0.95rem;
   color: #555;
 }
+
+.carousel__pagination {
+  position: relative; /* Cambiado de absolute a relative */
+  margin-top: 1.5rem; /* Espaciado hacia abajo */
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  z-index: 1;
+}
+
+
+</style>
+
+<style>
+.carousel__pagination-button {
+  width: 14px;
+  height: 14px;
+  background-color: #bbb;
+  border-radius: 50%;
+  border: 2px solid #5e2ca5;
+  transition:
+    background-color 0.3s ease,
+    transform 0.3s ease;
+}
+
+.carousel__pagination-button:hover {
+  transform: scale(1.2);
+  background-color: #555; /* un poco más claro al pasar el mouse */
+  opacity: 1;
+}
+
+.carousel__pagination-button--active {
+  background-color: #ffd700;
+  border-color: #5e2ca5;
+}
+
 </style>
