@@ -19,26 +19,26 @@
     :class="{ active: activeIndex === index }"
   >
     <button class="accordion-header" @click="toggle(index)">
-      <span class="icon-text">
-      <span class="emoji">{{ item.icon }}</span>
-       {{ item.title }}
-      </span>
-      <svg
-        :class="{ rotated: activeIndex === index }"
-        xmlns="http://www.w3.org/2000/svg"
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="#5e2ca5"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="icon-chevron"
-      >
-        <polyline points="6 9 12 15 18 9" />
-      </svg>
-    </button>
+  <span class="icon-text">
+    <span class="emoji" :class="{ rotated: activeIndex === index }">{{ item.icon }}</span>
+    {{ item.title }}
+  </span>
+  <svg
+    :class="{ rotated: activeIndex === index }"
+    xmlns="http://www.w3.org/2000/svg"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#5e2ca5"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    class="icon-chevron"
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+</button>
 
     <transition name="accordion-fade">
       <div v-if="activeIndex === index" :class="['accordion-body', `body-${index}`]">
@@ -256,11 +256,42 @@ const toggle = (index) => {
 .icon-text {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 .emoji {
   font-size: 1.2rem;
+  display: inline-block;
+  transition: transform 0.5s ease, color 0.5s ease;
+  color: #555;
 }
 
+.emoji.rotated {
+  transform: rotate(360deg) scale(1.2);
+  color: #5e2ca5;
+  animation: bounce 0.6s;
+}
+
+.icon-chevron {
+  transition: transform 0.3s ease;
+}
+
+.icon-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+@keyframes bounce {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  30% {
+    transform: scale(1.2) translateY(-5px);
+  }
+  60% {
+    transform: scale(0.95) translateY(3px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
 </style>
