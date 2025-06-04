@@ -3,6 +3,7 @@
     <HeroSlider />
     <ServicesSection />
     <AboutUsSection />
+    <ServicesHighlightsSection />
   </div>
 </template>
 
@@ -10,4 +11,5 @@
 import HeroSlider from '@/components/HeroSlider.vue'
 import ServicesSection from '@/components/ServicesSection.vue'
 import AboutUsSection from '@/components/AboutUsSection.vue';
+import ServicesHighlightsSection from '@/components/ServicesHighlightsSection.vue';
 </script>
