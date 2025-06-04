@@ -11,7 +11,7 @@
 import Navbar from '@/components/Navbar.vue'
 </script>
 
-<style>
+<style scoped>
 /*Fondo claro y Fuente base */
 body {
   background-color: #fff;
@@ -33,4 +33,16 @@ main {
 html {
   background-color: #fff;
 }
+
+.before-visible {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: all 0.8s ease;
+}
+
+.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 </style>

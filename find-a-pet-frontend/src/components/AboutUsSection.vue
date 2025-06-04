@@ -89,7 +89,7 @@ const toggle = (index) => {
 
 <style scoped>
 .about-section {
-  background: #fdfaf6;
+  background: linear-gradient(to bottom right, #fffdfa, #f9f6f3);
   padding: 5rem 1.5rem;
 }
 
@@ -130,6 +130,7 @@ const toggle = (index) => {
   line-height: 1.6;
   margin-bottom: 2rem;
   text-align: justify;
+  animation: fadeUp 0.8s ease both;
 }
 
 .accordion {
@@ -168,6 +169,7 @@ const toggle = (index) => {
 
 .accordion-header:hover {
   background-color: #9969e2;
+  transform: scale(1.02);
 }
 
 .accordion-header span {
@@ -185,6 +187,7 @@ const toggle = (index) => {
   color: #444;
   line-height: 1.6;
   border-top: 1px solid #e3e3e3;
+  transition: background-color 0.3s ease;
 }
 
 .accordion-header .icon-chevron {
@@ -263,13 +266,13 @@ const toggle = (index) => {
   font-size: 1.2rem;
   display: inline-block;
   transition: transform 0.5s ease, color 0.5s ease;
-  color: #555;
+  color: #e1c6e2;
 }
 
 .emoji.rotated {
   transform: rotate(360deg) scale(1.2);
-  color: #5e2ca5;
-  animation: bounce 0.6s;
+  color: #e1c6e2;
+  animation: bounce 0.4s ease-out;
 }
 
 .icon-chevron {
@@ -294,4 +297,29 @@ const toggle = (index) => {
     transform: scale(1) translateY(0);
   }
 }
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
 </style>
