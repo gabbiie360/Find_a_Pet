@@ -20,7 +20,7 @@ const createReport = async (req, res) => {
   }
 };
 
-const Report = require('../models/Report');
+
 
 // Obtener todos los reportes
 const getAllReports = async (req, res) => {
