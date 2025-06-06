@@ -10,19 +10,20 @@
         pauseAutoplayOnHover
         class="carousel"
       >
-        <Slide v-for="(review, index) in reviews" :key="index">
-          <div class="testimonial-card">
-            <div class="quote-icon">❝</div>
-            <p class="testimonial-text"> {{ review.text }} </p>
-            <div class="client-info">
-              <img :src="review.avatar" :alt="review.name" class="client-avatar" />
-              <div>
-                <h3 class="client-name">{{ review.name }}</h3>
-                <p class="client-role">{{ review.role }}</p>
-              </div>
-            </div>
-          </div>
-        </Slide>
+      <Slide v-for="(review, index) in reviews" :key="index">
+  <div class="testimonial-card animated-slide">
+    <div class="quote-icon">❝</div>
+    <p class="testimonial-text">{{ review.text }}</p>
+    <div class="client-info">
+      <img :src="review.avatar" :alt="review.name" class="client-avatar" />
+      <div>
+        <h3 class="client-name">{{ review.name }}</h3>
+        <p class="client-role">{{ review.role }}</p>
+      </div>
+    </div>
+  </div>
+</Slide>
+
 
         <template #addons>
           <Navigation />
@@ -166,4 +167,20 @@ const reviews = [
   object-fit: contain;
   z-index: 0;
 }
+
+.animated-slide {
+  animation: fadeSlideUp 0.7s ease both;
+}
+
+@keyframes fadeSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 </style>
