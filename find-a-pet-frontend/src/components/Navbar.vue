@@ -6,7 +6,7 @@
       <!-- Logo + Título -->
       <RouterLink class="navbar-brand d-flex align-items-center" to="/">
         <img
-          src="@/assets/logo.jpg"
+          src="@/assets/logo.png"
           alt="Find a Pet"
           class="logo-img me-2 animate__animated animate__fadeInLeft"
         />
@@ -58,20 +58,27 @@ const navLinks = [
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap');
 
 .custom-navbar {
-  background-color: #7e4cc9; /* Morado fijo */
-  padding: 0.8rem 1rem;
-  font-family: 'Poppins', sans-serif;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: relative; /* ¡Esto es crucial! */
+  display: flex;
+  align-items: center;
+  height: 75px; /* Una altura fija para la navbar */
+  background-color: #b098d6;
+  padding: 0 20px;
 }
 
 .logo-img {
-  height: 42px;
+  position: absolute;
+  height: 120px; /* El nuevo tamaño grande que quieres para el logo */
+  width: auto;
+  top: -30%;
+  left: 15px;
+  
 }
 
 .brand-text {
   color: #ffffff;
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
 }
 
 .navbar-nav .nav-link {
@@ -105,8 +112,8 @@ const navLinks = [
 }
 
 .navbar-nav .router-link-exact-active {
-  background-color: #ffd700;
-  color: #5e2ca5;
+  background-color: #f7de8e;
+  color: #b098d6;
   font-weight: 700;
 }
 </style>
