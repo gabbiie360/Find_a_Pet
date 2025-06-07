@@ -30,16 +30,20 @@
 
       <!-- Links de Navegación -->
       <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-        <ul class="navbar-nav">
+        <ul class="navbar-nav align-items-center">
           <li class="nav-item" v-for="(item, i) in navLinks" :key="i">
-            <RouterLink
-              class="nav-link animate__animated animate__fadeInUp"
-              :class="`animate__delay-${i + 2}s`"
-              :to="item.path"
-            >
-              {{ item.label }}
-            </RouterLink>
-          </li>
+      <RouterLink class="nav-link" :to="item.path">
+        {{ item.label }}
+      </RouterLink>
+    </li>
+       <li class="nav-item d-none d-lg-block">
+        <div class="nav-link-separator"></div>
+    </li>
+    <li class="nav-item">
+      <RouterLink to="/loginregister" class="nav-link nav-link-signup">
+        Sign In/Sign Up
+      </RouterLink>
+    </li>
         </ul>
       </div>
     </div>
@@ -156,5 +160,44 @@ const navLinks = [
   .navbar-nav .nav-link {
     margin-left: 0;
   }
+}
+
+.nav-link-login {
+  font-weight: 600;
+}
+
+/* Estilo para el botón de Sign Up (llamativo) */
+.nav-link-signup {
+  background-color: #f7de8e; /* Tu color amarillo característico */
+  color: #8b7bab !important; /* Un morado oscuro del texto para contraste */
+  font-weight: 700;
+  padding: 8px 20px !important;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  margin-left: 0.5rem; /* Espacio entre Login y Sign Up */
+}
+
+.nav-link-signup:hover {
+  background-color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* Estilo para el separador vertical (opcional) */
+.nav-link-separator {
+    height: 25px;
+    width: 1px;
+    background-color: rgba(255, 255, 255, 0.3);
+    margin: 0 1rem;
+}
+
+/* Ajustes para la vista móvil */
+@media (max-width: 991.98px) {
+    .nav-link-signup {
+        width: 100%;
+        text-align: center;
+        margin-left: 0;
+        margin-top: 10px; /* Espacio en el menú desplegado */
+    }
 }
 </style>
