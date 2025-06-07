@@ -58,27 +58,43 @@ const navLinks = [
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap');
 
 .custom-navbar {
-  position: relative; /* ¡Esto es crucial! */
-  display: flex;
-  align-items: center;
-  height: 75px; /* Una altura fija para la navbar */
   background-color: #b098d6;
-  padding: 0 20px;
+  /* CLAVE 1: Damos una altura fija a la barra para tener control total. */
+  height: 75px; 
+  padding: 0 1rem; /* Eliminamos el padding vertical para que la altura sea exacta. */
+}
+
+/* El contenedor del logo y el texto */
+.navbar-brand {
+  /* CLAVE 2: Hacemos que el contenedor del logo ocupe toda la altura de la navbar. */
+  /* Esto es crucial para centrar el texto verticalmente de forma correcta. */
+  height: 100%; 
+  position: relative; /* Mantenemos la posición relativa para el logo absoluto */
+  /* ELIMINADO: Quitamos los paddings que hacían la barra más alta y desalineaban todo. */
+  /* padding-top: 15px; */
+  /* padding-bottom: 15px; */
 }
 
 .logo-img {
   position: absolute;
-  height: 120px; /* El nuevo tamaño grande que quieres para el logo */
+  height: 110px; /* Reducimos un poco el tamaño para un mejor balance */
   width: auto;
-  top: -30%;
+  /* CLAVE 3: Posicionamos el logo de forma explícita desde arriba. */
+  /* Un valor negativo lo empuja hacia arriba, creando el efecto de superposición. */
+  top: -30px; 
   left: 15px;
-  
+  /* ELIMINADO: La técnica de transform ya no es necesaria y era parte del problema. */
+  /* transform: translateY(-60%); */
+  transition: all 0.3s ease;
 }
 
 .brand-text {
   color: #ffffff;
   font-weight: 700;
   font-size: 1.6rem;
+  /* CLAVE 4: Ajustamos el margen para alinear el texto correctamente al lado del nuevo tamaño del logo. */
+  margin-left: 120px; 
+  /* d-flex y align-items-center en el padre se encargan de la alineación vertical. */
 }
 
 .navbar-nav .nav-link {
@@ -93,27 +109,52 @@ const navLinks = [
 }
 
 .navbar-nav .nav-link:hover {
-  background-color: rgba(255, 255, 252, 0.2); /* Como cuadrito hover */
+  background-color: rgba(255, 255, 252, 0.2);
   color: #fff700;
-}
-
-.navbar-nav .nav-link::after {
-  content: '';
-  display: block;
-  width: 0;
-  height: 2px;
-  background: #ffd700;
-  transition: width 0.3s ease;
-  margin-top: 4px;
-}
-
-.navbar-nav .nav-link:hover::after {
-  width: 100%;
 }
 
 .navbar-nav .router-link-exact-active {
   background-color: #f7de8e;
   color: #b098d6;
   font-weight: 700;
+}
+
+.navbar-toggler {
+  border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+.navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+
+@media (max-width: 991.98px) {
+  .logo-img {
+    height: 90px;
+    top: -18px; /* Ajustamos la posición vertical para móvil */
+  }
+
+  .brand-text {
+    margin-left: 100px; /* Reducimos el margen para móvil */
+    font-size: 1.4rem; /* Hacemos el texto un poco más pequeño */
+  }
+  
+  .navbar-collapse {
+    background-color: rgba(97, 76, 133, 0.8); /* Un fondo más oscuro y con más opacidad */
+    backdrop-filter: blur(5px); /* Efecto de desenfoque para un look moderno */
+    border-radius: 8px;
+    margin-top: 15px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .navbar-nav .nav-item {
+    text-align: center;
+    margin-bottom: 5px;
+  }
+
+  .navbar-nav .nav-link {
+    margin-left: 0;
+  }
 }
 </style>

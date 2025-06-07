@@ -5,6 +5,7 @@ import { ObserveVisibility } from 'vue-observe-visibility'
 import fadeInOnScroll from './directives/fadeInOnScroll';
 
 import 'bootstrap/dist/css/bootstrap.min.css'
+import 'bootstrap'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import 'animate.css'
 
