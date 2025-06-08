@@ -49,12 +49,70 @@ const getMyReports = async (req, res) => {
   }
 };
 
+const Report = require('../models/Report');
+
+const updateReport = async (req, res) => {
+  try {
+    const reportId = req.params.id;
+
+    // Buscar el reporte
+    const report = await Report.findById(reportId);
+    if (!report) {
+      return res.status(404).json({ msg: 'Reporte no encontrado' });
+    }
+
+    // Verificar que el reporte pertenece al usuario
+    if (report.creadoPor.toString() !== req.user.id) {
+      return res.status(403).json({ msg: 'No autorizado para editar este reporte' });
+    }
+
+    // Actualizar campos permitidos
+    const camposPermitidos = ['tipo', 'descripcion', 'ciudad'];
+    camposPermitidos.forEach(campo => {
+      if (req.body[campo]) {
+        report[campo] = req.body[campo];
+      }
+    });
+
+    await report.save();
+    res.status(200).json({ msg: 'Reporte actualizado exitosamente', reporte: report });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Error al actualizar el reporte' });
+  }
+};
+
+const deleteReport = async (req, res) => {
+  try {
+    const reportId = req.params.id;
+
+    // Buscar el reporte
+    const report = await Report.findById(reportId);
+    if (!report) {
+      return res.status(404).json({ msg: 'Reporte no encontrado' });
+    }
+
+    // Verificar que el reporte pertenece al usuario
+    if (report.creadoPor.toString() !== req.user.id) {
+      return res.status(403).json({ msg: 'No autorizado para eliminar este reporte' });
+    }
+
+    await Report.findByIdAndDelete(reportId);
+    res.status(200).json({ msg: 'Reporte eliminado exitosamente' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Error al eliminar el reporte' });
+  }
+};
+
 
 
 module.exports = {
   createReport,
   getAllReports,
-  getMyReports
+  getMyReports,
+  updateReport,
+  deleteReport
 };
 
 
