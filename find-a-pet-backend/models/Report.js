@@ -14,6 +14,10 @@ const reportSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  fotos: {
+    type: [String], // array de URLs (puede ser vacío)
+    default: []
+  },
   fecha: {
     type: Date,
     default: Date.now
