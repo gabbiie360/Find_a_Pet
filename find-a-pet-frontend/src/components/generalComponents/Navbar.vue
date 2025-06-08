@@ -31,19 +31,48 @@
       <!-- Links de Navegación -->
       <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
         <ul class="navbar-nav align-items-center">
+          <!-- Links Estáticos -->
           <li class="nav-item" v-for="(item, i) in navLinks" :key="i">
-      <RouterLink class="nav-link" :to="item.path">
-        {{ item.label }}
-      </RouterLink>
-    </li>
-       <li class="nav-item d-none d-lg-block">
-        <div class="nav-link-separator"></div>
-    </li>
-    <li class="nav-item">
-      <RouterLink to="/loginregister" class="nav-link nav-link-signup">
-        Sign In/Sign Up
-      </RouterLink>
-    </li>
+            <RouterLink class="nav-link" :to="item.path">
+              {{ item.label }}
+            </RouterLink>
+          </li>
+          
+          <!-- ========================================================== -->
+          <!--       SECCIÓN DINÁMICA DE AUTENTICACIÓN (LOGIN/LOGOUT)     -->
+          <!-- ========================================================== -->
+
+          <!-- CASO 1: NO HAY USUARIO LOGUEADO -->
+          <template v-if="!authStore.user">
+            <li class="nav-item d-none d-lg-block">
+              <div class="nav-link-separator"></div>
+            </li>
+            <li class="nav-item">
+              <RouterLink to="/loginregister" class="nav-link nav-link-signup">
+                Sign In/Sign Up
+              </RouterLink>
+            </li>
+          </template>
+
+          <!-- CASO 2: SÍ HAY USUARIO LOGUEADO -->
+          <template v-else>
+            <li class="nav-item d-none d-lg-block">
+              <div class="nav-link-separator"></div>
+            </li>
+            <!-- Enlace al Perfil -->
+            <li class="nav-item">
+              <RouterLink to="/perfil" class="nav-link">
+                Mi Perfil
+              </RouterLink>
+            </li>
+            <!-- Botón para Cerrar Sesión -->
+            <li class="nav-item">
+              <a href="#" @click.prevent="handleLogout" class="nav-link nav-link-logout">
+                Cerrar Sesión
+              </a>
+            </li>
+          </template>
+
         </ul>
       </div>
     </div>
@@ -51,44 +80,52 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router';
+// Importa el store de autenticación que creamos
+import { authStore } from '@/store/authStore';
+
+// Links estáticos de navegación que no cambian
 const navLinks = [
   { path: '/', label: 'Home' },
   { path: '/about', label: 'About' },
   { path: '/contact', label: 'Contact' },
-]
+];
+
+const router = useRouter();
+
+// Función que se ejecuta al hacer clic en "Cerrar Sesión"
+const handleLogout = () => {
+  // Llama a la función logout de nuestro store para limpiar los datos
+  authStore.logout();
+  // Redirige al usuario a la página de inicio
+  router.push('/');
+};
 </script>
 
 <style scoped>
+/* ==================================================================== */
+/*                  TUS ESTILOS ORIGINALES (INTACTOS)                   */
+/* ==================================================================== */
+
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap');
 
 .custom-navbar {
   background-color: #b098d6;
-  /* CLAVE 1: Damos una altura fija a la barra para tener control total. */
   height: 75px; 
-  padding: 0 1rem; /* Eliminamos el padding vertical para que la altura sea exacta. */
+  padding: 0 1rem;
 }
 
-/* El contenedor del logo y el texto */
 .navbar-brand {
-  /* CLAVE 2: Hacemos que el contenedor del logo ocupe toda la altura de la navbar. */
-  /* Esto es crucial para centrar el texto verticalmente de forma correcta. */
   height: 100%; 
-  position: relative; /* Mantenemos la posición relativa para el logo absoluto */
-  /* ELIMINADO: Quitamos los paddings que hacían la barra más alta y desalineaban todo. */
-  /* padding-top: 15px; */
-  /* padding-bottom: 15px; */
+  position: relative;
 }
 
 .logo-img {
   position: absolute;
-  height: 110px; /* Reducimos un poco el tamaño para un mejor balance */
+  height: 110px;
   width: auto;
-  /* CLAVE 3: Posicionamos el logo de forma explícita desde arriba. */
-  /* Un valor negativo lo empuja hacia arriba, creando el efecto de superposición. */
   top: -30px; 
   left: 15px;
-  /* ELIMINADO: La técnica de transform ya no es necesaria y era parte del problema. */
-  /* transform: translateY(-60%); */
   transition: all 0.3s ease;
 }
 
@@ -96,9 +133,7 @@ const navLinks = [
   color: #ffffff;
   font-weight: 700;
   font-size: 1.6rem;
-  /* CLAVE 4: Ajustamos el margen para alinear el texto correctamente al lado del nuevo tamaño del logo. */
   margin-left: 120px; 
-  /* d-flex y align-items-center en el padre se encargan de la alineación vertical. */
 }
 
 .navbar-nav .nav-link {
@@ -131,21 +166,65 @@ const navLinks = [
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 }
 
+.nav-link-signup {
+  background-color: #f7de8e;
+  color: #8b7bab !important;
+  font-weight: 700;
+  padding: 8px 20px !important;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  margin-left: 0.5rem;
+}
 
+.nav-link-signup:hover {
+  background-color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.nav-link-separator {
+    height: 25px;
+    width: 1px;
+    background-color: rgba(255, 255, 255, 0.3);
+    margin: 0 1rem;
+}
+
+/* ==================================================================== */
+/*    NUEVA CLASE PARA EL BOTÓN DE LOGOUT (PUEDES AJUSTARLA)    */
+/* ==================================================================== */
+.nav-link-logout {
+  background-color: #e6a8a8; /* Un rojo suave para diferenciarlo */
+  color: #5c2121 !important;
+  font-weight: 700;
+  padding: 8px 20px !important;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  margin-left: 0.5rem;
+  cursor: pointer; /* Importante para que parezca un botón */
+}
+
+.nav-link-logout:hover {
+  background-color: #f8d7da;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+
+/* Ajustes para la vista móvil */
 @media (max-width: 991.98px) {
   .logo-img {
     height: 90px;
-    top: -18px; /* Ajustamos la posición vertical para móvil */
+    top: -18px;
   }
 
   .brand-text {
-    margin-left: 100px; /* Reducimos el margen para móvil */
-    font-size: 1.4rem; /* Hacemos el texto un poco más pequeño */
+    margin-left: 100px;
+    font-size: 1.4rem;
   }
   
   .navbar-collapse {
-    background-color: rgba(97, 76, 133, 0.8); /* Un fondo más oscuro y con más opacidad */
-    backdrop-filter: blur(5px); /* Efecto de desenfoque para un look moderno */
+    background-color: rgba(97, 76, 133, 0.8);
+    backdrop-filter: blur(5px);
     border-radius: 8px;
     margin-top: 15px;
     padding: 10px;
@@ -160,44 +239,12 @@ const navLinks = [
   .navbar-nav .nav-link {
     margin-left: 0;
   }
-}
 
-.nav-link-login {
-  font-weight: 600;
-}
-
-/* Estilo para el botón de Sign Up (llamativo) */
-.nav-link-signup {
-  background-color: #f7de8e; /* Tu color amarillo característico */
-  color: #8b7bab !important; /* Un morado oscuro del texto para contraste */
-  font-weight: 700;
-  padding: 8px 20px !important;
-  border-radius: 20px;
-  transition: all 0.3s ease;
-  margin-left: 0.5rem; /* Espacio entre Login y Sign Up */
-}
-
-.nav-link-signup:hover {
-  background-color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-/* Estilo para el separador vertical (opcional) */
-.nav-link-separator {
-    height: 25px;
-    width: 1px;
-    background-color: rgba(255, 255, 255, 0.3);
-    margin: 0 1rem;
-}
-
-/* Ajustes para la vista móvil */
-@media (max-width: 991.98px) {
-    .nav-link-signup {
-        width: 100%;
-        text-align: center;
-        margin-left: 0;
-        margin-top: 10px; /* Espacio en el menú desplegado */
-    }
+  .nav-link-signup, .nav-link-logout {
+      width: 100%;
+      text-align: center;
+      margin-left: 0;
+      margin-top: 10px;
+  }
 }
 </style>

@@ -33,6 +33,24 @@ class AuthService {
   getCurrentUser() {
     return JSON.parse(localStorage.getItem('user'));
   }
+
+
+// --- NUEVO MÉTODO PARA OBTENER LOS DATOS DEL PERFIL ---
+  getProfileData() {
+    // Obtenemos los datos del usuario (que incluyen el token) desde localStorage
+    const storedUser = this.getCurrentUser();
+    if (storedUser && storedUser.token) {
+      // Hacemos la petición GET y enviamos el token en la cabecera 'Authorization'
+      return axios.get(API_URL + 'me', {
+        headers: {
+          'Authorization': `Bearer ${storedUser.token}`
+        }
+      });
+    }
+    // Si no hay usuario/token, rechazamos la promesa
+    return Promise.reject('No user token found');
+  }
 }
+
 
 export default new AuthService();

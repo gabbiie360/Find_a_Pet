@@ -105,6 +105,7 @@ import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 // Importamos el servicio que creamos, es una mejor práctica
 import AuthService from '@/services/authService';
+import { authStore } from '@/store/authStore';
 
 // --- ESTADO GENERAL ---
 const showRegister = ref(false); // Controla qué cara de la tarjeta se muestra
@@ -121,8 +122,9 @@ const handleLogin = async () => {
   try {
     // Usamos el servicio para mantener el componente limpio
     const response = await AuthService.login(loginForm);
-    // El backend devuelve un objeto con token y user. Lo guardamos todo.
-    localStorage.setItem('user', JSON.stringify(response.data));
+    // --- 2. USA EL STORE PARA MANEJAR EL LOGIN ---
+    // En lugar de localStorage.setItem, llamamos a authStore.login
+    authStore.login(response.data); 
     // Redirige a la página principal o al perfil del usuario tras el login
     router.push('/perfil'); 
   } catch (error) {
