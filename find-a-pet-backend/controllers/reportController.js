@@ -25,9 +25,16 @@ const createReport = async (req, res) => {
 // Obtener todos los reportes
 const getAllReports = async (req, res) => {
   try {
-    const reports = await Report.find()
-      .populate('creadoPor', 'nombre email ciudad') // opcional: incluye datos del usuario
-      .sort({ fecha: -1 }); // ordena por fecha descendente
+    const { tipo, ciudad } = req.query;
+
+    // Construir filtros dinámicos
+    let filtro = {};
+    if (tipo) filtro.tipo = tipo;
+    if (ciudad) filtro.ciudad = ciudad;
+
+    const reports = await Report.find(filtro)
+      .populate('creadoPor', 'nombre ciudad')
+      .sort({ fecha: -1 });
 
     res.status(200).json(reports);
   } catch (err) {
@@ -35,6 +42,7 @@ const getAllReports = async (req, res) => {
     res.status(500).json({ msg: 'Error al obtener los reportes' });
   }
 };
+
 
 // Obtener reportes del usuario autenticado
 const getMyReports = async (req, res) => {
@@ -49,7 +57,7 @@ const getMyReports = async (req, res) => {
   }
 };
 
-const Report = require('../models/Report');
+
 
 const updateReport = async (req, res) => {
   try {
