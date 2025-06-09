@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Report = require('../models/Report');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -62,8 +63,36 @@ const loginUser = async (req, res) => {
   }
 };
 
+// --- NUEVA FUNCIÓN PARA OBTENER EL PERFIL ---
+const getUserProfile = async (req, res) => {
+  try {
+    // 1. Obtenemos el ID del usuario desde el token que ya fue verificado por el middleware
+    const userId = req.user.id;
+
+    // 2. Buscamos al usuario en la BD, pero excluimos la contraseña de la respuesta
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ msg: 'Usuario no encontrado' });
+    }
+
+    // 3. Buscamos todos los reportes creados por este usuario
+    const reports = await Report.find({ creadoPor: userId }).sort({ fecha: -1 });
+
+    // 4. Enviamos toda la información junta
+    res.status(200).json({
+      user,
+      reports
+    });
+
+  } catch (err) {
+    console.error('💥 ERROR AL OBTENER PERFIL:', err);
+    res.status(500).json({ msg: 'Error del servidor al obtener el perfil' });
+  }
+};
+
 // EXPORTAR FUNCIONES
 module.exports = {
   registerUser,
-  loginUser
+  loginUser,
+  getUserProfile
 };
