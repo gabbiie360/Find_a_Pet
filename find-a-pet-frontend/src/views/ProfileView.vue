@@ -195,7 +195,7 @@ const formattedJoinDate = computed(() => {
 // Función para cerrar sesión
 const logout = () => {
   authStore.logout();
-  router.push('/login'); // Corregido para que apunte a la ruta correcta
+  router.push('/loginregister'); // Corregido para que apunte a la ruta correcta
 };
 </script>
 
