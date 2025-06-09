@@ -61,7 +61,7 @@
             </li>
             <!-- Enlace al Perfil -->
             <li class="nav-item">
-              <RouterLink to="/perfil" class="nav-link">
+              <RouterLink to="/profileview" class="nav-link">
                 Mi Perfil
               </RouterLink>
             </li>

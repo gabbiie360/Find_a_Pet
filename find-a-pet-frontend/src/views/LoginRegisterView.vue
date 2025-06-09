@@ -126,7 +126,7 @@ const handleLogin = async () => {
     // En lugar de localStorage.setItem, llamamos a authStore.login
     authStore.login(response.data); 
     // Redirige a la página principal o al perfil del usuario tras el login
-    router.push('/perfil'); 
+    router.push('/profileview'); 
   } catch (error) {
     loginError.value = error.response?.data?.msg || 'Error: Could not sign in.';
   } finally {

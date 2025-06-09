@@ -1,225 +1,279 @@
 <template>
   <div class="profile-body">
-    <div v-if="loading" class="loading-container">
-      <p>Cargando perfil...</p>
+    <!-- Estado de Carga -->
+    <div v-if="loading" class="feedback-container">
+      <p>Cargando tu perfil...</p>
+      <!-- Podrías poner un spinner aquí -->
     </div>
 
-    <div v-else-if="error" class="error-container">
+    <!-- Estado de Error -->
+    <div v-else-if="error" class="feedback-container error">
+      <h2>¡Ups! Algo salió mal</h2>
       <p>{{ error }}</p>
-      <button @click="logout" class="btn-secondary">Volver al Login</button>
+      <button @click="logout" class="btn btn-secondary">Volver al Login</button>
     </div>
 
-    <div v-else class="profile-container">
-      <div class="profile-header">
-        <h1>Bienvenido, {{ user.nombre }}</h1>
-        <p>Aquí puedes gestionar tu información y tus reportes.</p>
-        <button @click="logout" class="btn-logout">Cerrar Sesión</button>
-      </div>
-
-      <div class="profile-content">
-        <!-- Tarjeta de Información del Usuario -->
-        <div class="info-card">
-          <h2>Tu Información</h2>
-          <ul>
-            <li><strong>Email:</strong> {{ user.email }}</li>
-            <li><strong>Teléfono:</strong> {{ user.telefono }}</li>
-            <li><strong>Ciudad:</strong> {{ user.ciudad }}</li>
-            <li><strong>Miembro desde:</strong> {{ new Date(user.fechaRegistro).toLocaleDateString() }}</li>
-          </ul>
+    <!-- Contenido del Perfil (cuando todo está correcto) -->
+    <div v-else-if="user" class="profile-layout">
+      
+      <!-- Columna Izquierda: Información del Usuario -->
+      <aside class="user-sidebar">
+        <div class="user-card">
+          <div class="user-avatar">
+            <!-- Inicial del nombre del usuario como avatar -->
+            <span>{{ user.nombre.charAt(0) }}</span>
+          </div>
+          <h2>{{ user.nombre }}</h2>
+          <p class="user-email">{{ user.email }}</p>
+          <hr>
+          <div class="user-details">
+            <p><strong>Teléfono:</strong> {{ user.telefono }}</p>
+            <p><strong>Ciudad:</strong> {{ user.ciudad }}</p>
+            <p><strong>Miembro desde:</strong> {{ formattedJoinDate }}</p>
+          </div>
+          <button @click="logout" class="btn btn-logout">Cerrar Sesión</button>
         </div>
+      </aside>
 
-        <!-- Sección de Reportes -->
-        <div class="reports-section">
-          <h2>Mis Reportes ({{ reports.length }})</h2>
-          <div v-if="reports.length > 0" class="reports-grid">
-            <div v-for="report in reports" :key="report._id" class="report-card">
-              <span class="report-tag" :class="report.tipo">{{ report.tipo }}</span>
-              <p class="report-description">{{ report.descripcion }}</p>
-              <div class="report-footer">
-                <span>{{ report.ciudad }}</span>
-                <span>{{ new Date(report.fecha).toLocaleDateString() }}</span>
-              </div>
+      <!-- Columna Derecha: Reportes del Usuario -->
+      <main class="reports-main">
+        <div class="reports-header">
+          <h1>Mis Reportes</h1>
+          <button class="btn btn-primary">Crear Nuevo Reporte</button>
+        </div>
+        
+        <div v-if="reports.length > 0" class="reports-grid">
+          <!-- Iteramos sobre cada reporte del usuario -->
+          <div v-for="report in reports" :key="report._id" class="report-card">
+            <span class="report-tag" :class="`tag-${report.tipo}`">{{ report.tipo }}</span>
+            <p class="report-description">{{ report.descripcion }}</p>
+            <div class="report-footer">
+              <span class="report-location">{{ report.ciudad }}</span>
+              <span class="report-date">{{ new Date(report.fecha).toLocaleDateString() }}</span>
             </div>
           </div>
-          <div v-else class="no-reports">
-            <p>Aún no has creado ningún reporte.</p>
-            <button class="btn-primary">Crear nuevo reporte</button>
-          </div>
         </div>
-      </div>
+        
+        <div v-else class="no-reports-message">
+          <p>¡Aún no has creado ningún reporte! Empieza a ayudar a la comunidad creando tu primer reporte.</p>
+        </div>
+      </main>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AuthService from '@/services/authService';
+import { authStore } from '@/store/authStore';
 
 const router = useRouter();
+
+// Variables reactivas para almacenar los datos
 const user = ref(null);
 const reports = ref([]);
-const loading = ref(true);
+const loading = ref(true); // Empezamos en modo carga por defecto
 const error = ref('');
 
-// onMounted se ejecuta automáticamente cuando el componente se carga
+// `onMounted` es un "hook" de Vue que se ejecuta justo cuando el componente se ha montado en la página.
+// Es el lugar perfecto para cargar datos iniciales.
 onMounted(async () => {
   try {
+    // 1. Llamamos a nuestro servicio para obtener los datos del perfil
     const response = await AuthService.getProfileData();
+
+    // 2. Si todo sale bien, guardamos los datos en nuestras variables reactivas
     user.value = response.data.user;
     reports.value = response.data.reports;
   } catch (err) {
-    // Si el token es inválido, expiró o no existe, el servicio lo rechazará
+    // 3. Si hay un error (ej. token inválido), lo guardamos para mostrar un mensaje
     error.value = 'No se pudo cargar tu perfil. Tu sesión puede haber expirado.';
-    // Opcional: limpiar localStorage si hay un error de autenticación
-    AuthService.logout();
+    // Forzamos el logout para limpiar el estado local
+    authStore.logout();
   } finally {
+    // 4. Se ejecuta siempre al final. Dejamos de mostrar el estado de carga.
     loading.value = false;
   }
 });
 
+// Una "propiedad computada" para formatear la fecha de registro. Es más limpio que hacerlo en el template.
+const formattedJoinDate = computed(() => {
+  if (user.value && user.value.fechaRegistro) {
+    return new Date(user.value.fechaRegistro).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
+  return '';
+});
+
+// Función para cerrar sesión
 const logout = () => {
-  AuthService.logout();
-  router.push('/login');
+  authStore.logout();
+  router.push('/loginregister');
 };
 </script>
 
 <style scoped>
+/* Estilos para el contenedor principal */
 .profile-body {
-  font-family: 'Poppins', sans-serif;
   background-color: #F4F2F8;
-  min-height: 100vh;
+  min-height: calc(100vh - 75px); /* Restamos la altura del navbar */
   padding: 40px;
+  font-family: 'Poppins', sans-serif;
 }
 
-.profile-container {
-  max-width: 1200px;
+.feedback-container {
+  text-align: center;
+  padding: 50px;
+  background-color: white;
+  border-radius: 20px;
+  max-width: 600px;
+  margin: 50px auto;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+.feedback-container.error h2 { color: #721c24; }
+.feedback-container.error p { color: #721c24; }
+
+
+/* Layout principal del perfil */
+.profile-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 40px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
-.profile-header {
+/* Columna izquierda: Sidebar del usuario */
+.user-sidebar .user-card {
   background-color: white;
   padding: 30px;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-  margin-bottom: 40px;
+  text-align: center;
+  position: sticky; /* Para que se quede fija al hacer scroll */
+  top: 100px; /* Espacio desde el navbar */
+}
+.user-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: #b098d6;
+  color: white;
+  font-size: 3rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px auto;
+  border: 4px solid #f7de8e;
+}
+.user-card h2 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+.user-card .user-email {
+  color: #777;
+  margin-bottom: 20px;
+}
+.user-card .user-details {
+  text-align: left;
+  margin-top: 20px;
+}
+.user-details p {
+  margin-bottom: 10px;
+  color: #555;
+}
+.user-details strong {
+  color: #333;
+}
+.btn-logout {
+  width: 100%;
+  margin-top: 20px;
+  background-color: #f8d7da;
+  color: #721c24;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Columna derecha: Contenido principal */
+.reports-main .reports-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 30px;
 }
-.profile-header h1 {
+.reports-header h1 {
   margin: 0;
-  font-size: 2rem;
-  color: #333;
 }
-.profile-header p {
-  margin: 0;
-  color: #777;
-}
-.btn-logout {
-  padding: 10px 20px;
+.btn.btn-primary {
+  background-color: #f7de8e;
+  color: #8b7bab;
+  font-weight: 700;
+  padding: 12px 25px;
   border-radius: 8px;
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-  font-weight: 600;
+  border: none;
   cursor: pointer;
 }
 
-.profile-content {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 40px;
-}
-
-.info-card {
-  background-color: white;
-  padding: 30px;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
-.info-card h2 {
-  margin-top: 0;
-  border-bottom: 2px solid #F4F2F8;
-  padding-bottom: 15px;
-  margin-bottom: 20px;
-}
-.info-card ul {
-  list-style: none;
-  padding: 0;
-}
-.info-card li {
-  margin-bottom: 15px;
-  color: #555;
-}
-.info-card li strong {
-  color: #333;
-}
-
-.reports-section h2 {
-  margin-top: 0;
-}
 .reports-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 25px;
 }
-
 .report-card {
   background-color: white;
-  padding: 20px;
   border-radius: 15px;
+  padding: 20px;
   box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-  border-left: 5px solid #ccc;
+  display: flex;
+  flex-direction: column;
 }
 .report-tag {
-  display: inline-block;
-  padding: 4px 10px;
+  align-self: flex-start;
+  padding: 5px 12px;
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
-  margin-bottom: 15px;
   text-transform: capitalize;
+  margin-bottom: 15px;
 }
-.report-tag.perdido {
-  background-color: #f8d7da;
-  color: #721c24;
-}
-.report-tag.encontrado {
-  background-color: #d1ecf1;
-  color: #0c5460;
-}
-.report-tag.adopcion {
-  background-color: #d4edda;
-  color: #155724;
-}
+.tag-perdido { background-color: #ffebee; color: #c62828; }
+.tag-encontrado { background-color: #e3f2fd; color: #1565c0; }
+.tag-adopcion { background-color: #e8f5e9; color: #2e7d32; }
 
 .report-description {
+  flex-grow: 1; /* Hace que la descripción ocupe el espacio disponible */
   color: #333;
 }
+
 .report-footer {
-  margin-top: 20px;
+  border-top: 1px solid #eee;
   padding-top: 15px;
-  border-top: 1px solid #F4F2F8;
+  margin-top: 15px;
   display: flex;
   justify-content: space-between;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #888;
 }
 
-.no-reports {
+.no-reports-message {
   background-color: white;
-  padding: 40px;
-  text-align: center;
   border-radius: 15px;
+  padding: 50px;
+  text-align: center;
+  border: 2px dashed #ddd;
 }
-.btn-primary {
-  padding: 12px 25px;
-  border: none;
-  border-radius: 8px;
-  background-color: #FFD93D;
-  color: #333;
-  font-weight: 600;
-  cursor: pointer;
+.no-reports-message p {
+  max-width: 400px;
+  margin: 0 auto 20px auto;
+  line-height: 1.6;
 }
 </style>
