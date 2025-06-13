@@ -1,44 +1,41 @@
-// src/services/petService.js
-import axios from 'axios';
-import { authStore } from '@/store/authStore';
-
-const PET_API_URL = 'http://localhost:5000/api/mascotas/';
-const UPLOAD_API_URL = 'http://localhost:5000/api/upload/';
-
-const getAuthHeaders = () => {
-  const user = authStore.user;
-  if (user && user.token) {
-    return { 'Authorization': `Bearer ${user.token}` };
-  }
-  return {};
-};
+import apiClient from './api'; // Importamos nuestro cliente de API centralizado
 
 class PetService {
-  getMyPets() { return axios.get(PET_API_URL, { headers: getAuthHeaders() }); }
-  addPet(petData) { return axios.post(PET_API_URL, petData, { headers: getAuthHeaders() }); }
-  
-  // --- NUEVOS MÉTODOS ---
+  getMyPets() {
+    return apiClient.get('/mascotas');
+  }
+
+  addPet(petData) {
+    return apiClient.post('/mascotas', petData);
+  }
+
   updatePet(petId, petData) {
-    return axios.put(`${PET_API_URL}${petId}`, petData, { headers: getAuthHeaders() });
+    return apiClient.put(`/mascotas/${petId}`, petData);
   }
 
   reportAsLost(petId, reportData) {
-    return axios.put(`${PET_API_URL}${petId}/reportar`, reportData, { headers: getAuthHeaders() });
-  }
-
-  uploadPetImage(imageFile) {
-    const formData = new FormData();
-    formData.append('image', imageFile);
-    // Para upload no necesitamos token, pero sí el Content-Type correcto que axios pone solo
-    return axios.post(UPLOAD_API_URL, formData);
+    return apiClient.put(`/mascotas/${petId}/reportar`, reportData);
   }
 
   markAsFound(petId) {
-    return axios.put(`${PET_API_URL}${petId}/encontrada`, {}, { headers: getAuthHeaders() });
-}
-getPetQrCode(petId) {
-    return axios.get(`${PET_API_URL}${petId}/qr`, { headers: getAuthHeaders() });
-}
+    return apiClient.put(`/mascotas/${petId}/encontrada`);
+  }
+  
+  getPetQrCode(petId) {
+    return apiClient.get(`/mascotas/${petId}/qr`);
+  }
+
+  // La subida de imágenes es un caso especial porque usa FormData
+  uploadPetImage(imageFile) {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    // Hacemos la petición a la URL completa y dejamos que axios ponga el Content-Type
+    return apiClient.post('/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  }
 }
 
 export default new PetService();
