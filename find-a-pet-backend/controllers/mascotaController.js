@@ -1,5 +1,6 @@
 // backend/controllers/mascotaController.js
 const Mascota = require('../models/Mascota');
+const qrcode = require('qrcode');
 
 // Crear una nueva mascota
 exports.crearMascota = async (req, res) => {
@@ -75,5 +76,43 @@ exports.actualizarMascota = async (req, res) => {
   } catch (err) {
     console.error('ERROR AL ACTUALIZAR MASCOTA:', err);
     res.status(500).json({ msg: 'Error del servidor' });
+  }
+};
+
+exports.marcarComoEncontrada = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const mascota = await Mascota.findById(id);
+    if (!mascota) return res.status(404).json({ msg: 'Mascota no encontrada' });
+    if (mascota.propietarioId.toString() !== req.user.id) {
+      return res.status(403).json({ msg: 'No autorizado' });
+    }
+    mascota.estado = 'en casa';
+    mascota.fechaPerdida = null;
+    mascota.ultimaUbicacion = undefined;
+    await mascota.save();
+    res.status(200).json({ msg: 'Mascota marcada como encontrada', mascota });
+  } catch (err) {
+    // ... manejo de error
+  }
+};
+
+exports.obtenerMascotaPublico = async (req, res) => {
+  try {
+    const mascota = await Mascota.findById(req.params.id).populate('propietarioId', 'nombre telefono email');
+    if (!mascota) return res.status(404).json({ msg: 'Mascota no encontrada' });
+    res.status(200).json(mascota);
+  } catch (err) {
+    // ... manejo de error
+  }
+};
+
+exports.generarQrMascota = async (req, res) => {
+  try {
+    const petUrl = `${process.env.FRONTEND_URL}/pet/${req.params.id}`;
+    const qrCodeDataUrl = await qrcode.toDataURL(petUrl);
+    res.status(200).json({ qrCode: qrCodeDataUrl });
+  } catch (err) {
+    // ... manejo de error
   }
 };

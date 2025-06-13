@@ -22,6 +22,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  fotoPerfil: { 
+    type: String, 
+    default: '' 
+  },  
   rol: {
     type: String,
     enum: ['usuario', 'admin'],

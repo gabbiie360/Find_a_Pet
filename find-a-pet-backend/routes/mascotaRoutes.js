@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
-const { crearMascota, obtenerMisMascotas, reportarMascotaPerdida, actualizarMascota } = require('../controllers/mascotaController');
+const { crearMascota, obtenerMisMascotas, reportarMascotaPerdida, actualizarMascota, marcarComoEncontrada, obtenerMascotaPublico, generarQrMascota } = require('../controllers/mascotaController');
 
 // Todas estas rutas están protegidas y requieren un token válido.
 
@@ -17,5 +17,9 @@ router.put('/:id/reportar', verifyToken, reportarMascotaPerdida);
 
 // PUT /api/mascotas/:id -> Actualizar una mascota
 router.put('/:id', verifyToken, actualizarMascota);
+
+router.put('/:id/encontrada', verifyToken, marcarComoEncontrada);
+router.get('/:id/public', obtenerMascotaPublico); // Ruta pública, sin verifyToken
+router.get('/:id/qr', verifyToken, generarQrMascota);
 
 module.exports = router;

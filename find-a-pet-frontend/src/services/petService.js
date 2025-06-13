@@ -32,6 +32,13 @@ class PetService {
     // Para upload no necesitamos token, pero sí el Content-Type correcto que axios pone solo
     return axios.post(UPLOAD_API_URL, formData);
   }
+
+  markAsFound(petId) {
+    return axios.put(`${PET_API_URL}${petId}/encontrada`, {}, { headers: getAuthHeaders() });
+}
+getPetQrCode(petId) {
+    return axios.get(`${PET_API_URL}${petId}/qr`, { headers: getAuthHeaders() });
+}
 }
 
 export default new PetService();

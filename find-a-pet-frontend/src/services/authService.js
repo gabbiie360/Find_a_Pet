@@ -13,6 +13,10 @@ class AuthService {
     });
   }
 
+  updateProfile(userData) {
+    return axios.put(API_URL + 'me', userData, { headers: getAuthHeaders() });
+}
+
   // Envía los datos del formulario de registro al backend
   register(userData) {
     return axios.post(API_URL + 'register', {
