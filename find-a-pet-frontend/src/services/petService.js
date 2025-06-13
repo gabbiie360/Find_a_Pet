@@ -2,7 +2,8 @@
 import axios from 'axios';
 import { authStore } from '@/store/authStore';
 
-const API_URL = 'http://localhost:5000/api/mascotas/';
+const PET_API_URL = 'http://localhost:5000/api/mascotas/';
+const UPLOAD_API_URL = 'http://localhost:5000/api/upload/';
 
 const getAuthHeaders = () => {
   const user = authStore.user;
@@ -13,19 +14,23 @@ const getAuthHeaders = () => {
 };
 
 class PetService {
-  // Obtener todas las mascotas del usuario logueado
-  getMyPets() {
-    return axios.get(API_URL, { headers: getAuthHeaders() });
+  getMyPets() { return axios.get(PET_API_URL, { headers: getAuthHeaders() }); }
+  addPet(petData) { return axios.post(PET_API_URL, petData, { headers: getAuthHeaders() }); }
+  
+  // --- NUEVOS MÉTODOS ---
+  updatePet(petId, petData) {
+    return axios.put(`${PET_API_URL}${petId}`, petData, { headers: getAuthHeaders() });
   }
 
-  // Añadir una nueva mascota
-  addPet(petData) {
-    return axios.post(API_URL, petData, { headers: getAuthHeaders() });
-  }
-
-  // Reportar una mascota como perdida
   reportAsLost(petId, reportData) {
-    return axios.put(`${API_URL}${petId}/reportar`, reportData, { headers: getAuthHeaders() });
+    return axios.put(`${PET_API_URL}${petId}/reportar`, reportData, { headers: getAuthHeaders() });
+  }
+
+  uploadPetImage(imageFile) {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    // Para upload no necesitamos token, pero sí el Content-Type correcto que axios pone solo
+    return axios.post(UPLOAD_API_URL, formData);
   }
 }
 

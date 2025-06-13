@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
-const { crearMascota, obtenerMisMascotas, reportarMascotaPerdida } = require('../controllers/mascotaController');
+const { crearMascota, obtenerMisMascotas, reportarMascotaPerdida, actualizarMascota } = require('../controllers/mascotaController');
 
 // Todas estas rutas están protegidas y requieren un token válido.
 
@@ -14,5 +14,8 @@ router.get('/', verifyToken, obtenerMisMascotas);
 
 // PUT /api/mascotas/:id/reportar -> Marcar una mascota como perdida
 router.put('/:id/reportar', verifyToken, reportarMascotaPerdida);
+
+// PUT /api/mascotas/:id -> Actualizar una mascota
+router.put('/:id', verifyToken, actualizarMascota);
 
 module.exports = router;

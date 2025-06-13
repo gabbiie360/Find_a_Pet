@@ -3,7 +3,6 @@
     <!-- Estado de Carga -->
     <div v-if="loading" class="feedback-container">
       <p>Cargando tu perfil...</p>
-      <!-- Aquí podrías añadir un componente de spinner/loading visualmente más atractivo -->
     </div>
 
     <!-- Estado de Error -->
@@ -13,15 +12,12 @@
       <button @click="logout" class="btn btn-secondary">Volver al Login</button>
     </div>
 
-    <!-- Contenido del Perfil (cuando todo está correcto) -->
+    <!-- Contenido del Perfil -->
     <div v-else-if="user" class="profile-layout">
-      
       <!-- Columna Izquierda: Información del Usuario -->
       <aside class="user-sidebar">
         <div class="user-card">
-          <div class="user-avatar">
-            <span>{{ user.nombre.charAt(0).toUpperCase() }}</span>
-          </div>
+          <div class="user-avatar"><span>{{ user.nombre.charAt(0).toUpperCase() }}</span></div>
           <h2>{{ user.nombre }}</h2>
           <p class="user-email">{{ user.email }}</p>
           <hr>
@@ -40,18 +36,21 @@
         <section class="content-section">
           <div class="section-header">
             <h2>Mis Mascotas</h2>
-            <button @click="openPetModal" class="btn btn-primary">Registrar Mascota</button>
+            <button @click="openPetModal(null)" class="btn btn-primary">Registrar Mascota</button>
           </div>
           <div v-if="mascotas.length > 0" class="pets-grid">
             <div v-for="mascota in mascotas" :key="mascota._id" class="pet-card">
-              <span class="pet-status" :class="mascota.estado.replace(' ', '-')">{{ mascota.estado }}</span>
-              <h3>{{ mascota.nombre }}</h3>
-              <p class="pet-breed">{{ mascota.especie }} - {{ mascota.raza || 'Sin raza especificada' }}</p>
-              <p class="pet-description">{{ mascota.descripcion }}</p>
-              <div class="pet-actions">
-                <button class="btn-action edit">Editar</button>
-                <button v-if="mascota.estado === 'en casa'" class="btn-action report">Reportar Perdida</button>
+              <img :src="mascota.fotos[0] || placeholderImage" alt="Foto de la mascota" class="pet-photo">
+              <div class="pet-info">
+                <h3>{{ mascota.nombre }}</h3>
+                <p class="pet-breed">{{ mascota.especie }} - {{ mascota.raza || 'No especificada' }}</p>
+                <p class="pet-description">{{ mascota.descripcion }}</p>
               </div>
+              <div class="pet-actions">
+                <button @click="openPetModal(mascota)" class="btn-action edit">Editar</button>
+                <button v-if="mascota.estado === 'en casa'" @click="openReportModal(mascota)" class="btn-action report">Reportar Perdida</button>
+              </div>
+              <span class="pet-status" :class="mascota.estado.replace(' ', '-')">{{ mascota.estado }}</span>
             </div>
           </div>
           <div v-else class="no-content-message">
@@ -64,13 +63,13 @@
           <div class="section-header">
             <h2>Mis Reportes Activos</h2>
           </div>
-          <div v-if="reports.length > 0" class="reports-grid">
-            <div v-for="report in reports" :key="report._id" class="report-card">
-              <span class="report-tag" :class="`tag-${report.tipo}`">{{ report.tipo }}</span>
-              <p class="report-description">{{ report.descripcion }}</p>
-              <div class="report-footer">
-                <span class="report-location">{{ report.ciudad }}</span>
-                <span class="report-date">{{ new Date(report.fecha).toLocaleDateString() }}</span>
+          <div v-if="activeReports.length > 0" class="reports-grid">
+            <div v-for="reporte in activeReports" :key="reporte._id" class="report-card-active">
+              <img :src="reporte.fotos[0] || placeholderImage" alt="Foto de la mascota" class="pet-photo">
+              <div class="pet-info">
+                 <h3>{{ reporte.nombre }}</h3>
+                 <p class="pet-breed">Perdida desde: {{ new Date(reporte.fechaPerdida).toLocaleDateString() }}</p>
+                 <p class="pet-description">Última vez vista en {{ reporte.ultimaUbicacion.coordinates[0] ? 'coordenadas.' : 'ubicación no especificada.' }}</p>
               </div>
             </div>
           </div>
@@ -81,23 +80,45 @@
       </main>
     </div>
 
-    <!-- MODAL PARA AGREGAR MASCOTA -->
+    <!-- MODAL PARA AGREGAR/EDITAR MASCOTA -->
     <div v-if="showPetModal" class="modal-overlay" @click.self="closePetModal">
       <div class="modal-content animate__animated animate__fadeInUp">
-        <h2>Registrar Nueva Mascota</h2>
-        <p>Mantén la información de tus compañeros a salvo.</p>
-        <form @submit.prevent="handleAgregarMascota">
-          <input type="text" v-model="newPetForm.nombre" placeholder="Nombre de la mascota" required>
-          <input type="text" v-model="newPetForm.especie" placeholder="Especie (ej. Perro, Gato)" required>
-          <input type="text" v-model="newPetForm.raza" placeholder="Raza (ej. Labrador, Siamés)">
-          <textarea v-model="newPetForm.descripcion" placeholder="Descripción y señas particulares..." required rows="4"></textarea>
+        <h2>{{ isEditing ? 'Editar Mascota' : 'Registrar Nueva Mascota' }}</h2>
+        <form @submit.prevent="handleSavePet">
+          <input type="text" v-model="petForm.nombre" placeholder="Nombre" required>
+          <input type="text" v-model="petForm.especie" placeholder="Especie" required>
+          <input type="text" v-model="petForm.raza" placeholder="Raza">
+          <textarea v-model="petForm.descripcion" placeholder="Descripción" required></textarea>
+          <div class="image-upload-field">
+            <label for="petImage">Añadir foto:</label>
+            <input type="file" id="petImage" @change="handleImageSelection" accept="image/*">
+            <img v-if="imagePreviewUrl" :src="imagePreviewUrl" class="image-preview" alt="Vista previa">
+          </div>
           <div class="modal-actions">
             <button type="button" @click="closePetModal" class="btn btn-secondary">Cancelar</button>
-            <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
-              {{ isSubmitting ? 'Guardando...' : 'Guardar Mascota' }}
-            </button>
+            <button type="submit" class="btn btn-primary" :disabled="isSubmitting">{{ isSubmitting ? 'Guardando...' : 'Guardar' }}</button>
           </div>
           <p v-if="modalError" class="error-message">{{ modalError }}</p>
+        </form>
+      </div>
+    </div>
+    
+    <!-- MODAL PARA REPORTAR PERDIDA -->
+    <div v-if="showReportModal" class="modal-overlay" @click.self="closeReportModal">
+      <div class="modal-content animate__animated animate__fadeInUp">
+        <h2>Reportar a "{{ selectedPet?.nombre }}" como perdida</h2>
+        <form @submit.prevent="handleReportLost">
+            <label for="fechaPerdida">Fecha en que se perdió</label>
+            <input id="fechaPerdida" type="date" v-model="reportForm.fechaPerdida" required>
+            <label for="ubicacionTexto">Última ubicación vista (ciudad, barrio)</label>
+            <input id="ubicacionTexto" type="text" placeholder="Ej: San Pedro Sula, Barrio Guamilito" v-model="reportForm.ubicacionTexto">
+            <label for="recompensa">Recompensa (opcional)</label>
+            <input id="recompensa" type="number" v-model.number="reportForm.recompensa" placeholder="0">
+            <div class="modal-actions">
+                <button type="button" @click="closeReportModal" class="btn btn-secondary">Cancelar</button>
+                <button type="submit" class="btn btn-primary report-confirm" :disabled="isSubmitting">{{ isSubmitting ? 'Reportando...' : 'Confirmar Reporte' }}</button>
+            </div>
+            <p v-if="modalError" class="error-message">{{ modalError }}</p>
         </form>
       </div>
     </div>
@@ -105,40 +126,40 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, reactive } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AuthService from '@/services/authService';
-import PetService from '@/services/petService'; // Importamos el servicio de mascotas
+import PetService from '@/services/petService';
 import { authStore } from '@/store/authStore';
 
-const router = useRouter();
+import placeholderImage from '@/assets/placeholder-pet.png';
 
-// Variables reactivas para los datos
+// --- Estado General ---
+const router = useRouter();
 const user = ref(null);
-const reports = ref([]);
-const mascotas = ref([]); // Lista para las mascotas del usuario
+const mascotas = ref([]);
 const loading = ref(true);
 const error = ref('');
-
-// --- Lógica del Modal ---
-const showPetModal = ref(false);
 const isSubmitting = ref(false);
 const modalError = ref('');
-const newPetForm = reactive({
-  nombre: '',
-  especie: '',
-  raza: '',
-  descripcion: ''
-});
 
-// onMounted se ejecuta cuando el componente está listo
+// --- Lógica de Modales ---
+const showPetModal = ref(false);
+const showReportModal = ref(false);
+const isEditing = ref(false);
+const selectedPet = ref(null);
+
+const petForm = reactive({ _id: null, nombre: '', especie: '', raza: '', descripcion: '', fotos: [] });
+const reportForm = reactive({ fechaPerdida: '', ubicacionTexto: '', recompensa: 0 });
+
+// --- Lógica de subida de imagen ---
+const imageFile = ref(null);
+const imagePreviewUrl = ref('');
+
 onMounted(async () => {
   try {
-    // Obtenemos los datos del perfil (usuario y reportes) en una sola llamada
     const profileResponse = await AuthService.getProfileData();
     user.value = profileResponse.data.user;
-    reports.value = profileResponse.data.reports;
-    // Obtenemos las mascotas del usuario
     await fetchMisMascotas();
   } catch (err) {
     error.value = 'No se pudo cargar tu perfil. Tu sesión puede haber expirado.';
@@ -148,41 +169,90 @@ onMounted(async () => {
   }
 });
 
-// Función para obtener las mascotas y actualizar la lista
 const fetchMisMascotas = async () => {
   try {
-    const petsResponse = await PetService.getMyPets();
-    mascotas.value = petsResponse.data;
-  } catch (err) {
-    // Si falla la carga de mascotas, no rompemos toda la página, solo lo mostramos en consola
-    console.error("No se pudieron cargar las mascotas:", err);
-    error.value = 'No se pudieron cargar tus mascotas, pero tu perfil está aquí. Intenta recargar la página.';
+    const res = await PetService.getMyPets();
+    mascotas.value = res.data;
+  } catch (err) { console.error("Error cargando mascotas:", err); }
+};
+
+// --- Manejadores de Modales ---
+const openPetModal = (mascota) => {
+  if (mascota) { // Editando
+    isEditing.value = true;
+    Object.assign(petForm, { ...mascota });
+    imagePreviewUrl.value = mascota.fotos[0] || '';
+  } else { // Creando
+    isEditing.value = false;
+    Object.assign(petForm, { _id: null, nombre: '', especie: '', raza: '', descripcion: '', fotos: [] });
+  }
+  showPetModal.value = true;
+};
+const closePetModal = () => {
+  showPetModal.value = false;
+  modalError.value = '';
+  imageFile.value = null;
+  imagePreviewUrl.value = '';
+};
+
+const openReportModal = (mascota) => { selectedPet.value = mascota; showReportModal.value = true; };
+const closeReportModal = () => { showReportModal.value = false; modalError.value = ''; };
+
+const handleImageSelection = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    imageFile.value = file;
+    imagePreviewUrl.value = URL.createObjectURL(file);
   }
 };
 
-// --- Funciones del Modal ---
-const openPetModal = () => { showPetModal.value = true; };
-const closePetModal = () => {
-  showPetModal.value = false;
-  // Limpiar formulario y error al cerrar
-  Object.assign(newPetForm, { nombre: '', especie: '', raza: '', descripcion: '' });
-  modalError.value = '';
-};
-const handleAgregarMascota = async () => {
+const handleSavePet = async () => {
   isSubmitting.value = true;
   modalError.value = '';
   try {
-    await PetService.addPet(newPetForm);
-    await fetchMisMascotas(); // Recargamos la lista para mostrar la nueva mascota
+    let petDataPayload = { ...petForm };
+    if (imageFile.value) {
+      const res = await PetService.uploadPetImage(imageFile.value);
+      // Reemplazamos la foto, asumiendo una por mascota por simplicidad
+      petDataPayload.fotos = [res.data.secure_url]; 
+    }
+    if (isEditing.value) {
+      await PetService.updatePet(petForm._id, petDataPayload);
+    } else {
+      await PetService.addPet(petDataPayload);
+    }
+    await fetchMisMascotas();
     closePetModal();
   } catch (err) {
-    modalError.value = 'Error al guardar la mascota. Revisa los datos e inténtalo de nuevo.';
+    modalError.value = 'Error al guardar. Por favor, revisa los datos.';
   } finally {
     isSubmitting.value = false;
   }
 };
 
-// Propiedad computada para formatear la fecha
+const handleReportLost = async () => {
+    isSubmitting.value = true;
+    modalError.value = '';
+    try {
+        const reportData = {
+            fechaPerdida: reportForm.fechaPerdida,
+            recompensa: reportForm.recompensa,
+            ultimaUbicacion: { type: 'Point', coordinates: [-88.025, 15.504] } // Placeholder
+        };
+        await PetService.reportAsLost(selectedPet.value._id, reportData);
+        await fetchMisMascotas();
+        closeReportModal();
+    } catch(err) {
+        modalError.value = 'Error al generar el reporte.';
+    } finally {
+        isSubmitting.value = false;
+    }
+};
+
+const activeReports = computed(() => {
+    return mascotas.value.filter(m => m.estado === 'perdida');
+});
+
 const formattedJoinDate = computed(() => {
   if (user.value && user.value.fechaRegistro) {
     return new Date(user.value.fechaRegistro).toLocaleDateString('es-ES', {
@@ -192,255 +262,57 @@ const formattedJoinDate = computed(() => {
   return '';
 });
 
-// Función para cerrar sesión
 const logout = () => {
   authStore.logout();
-  router.push('/loginregister'); // Corregido para que apunte a la ruta correcta
+  router.push('/loginregister');
 };
 </script>
 
 <style scoped>
-/* Estilos existentes (optimizados y con adiciones) */
-.profile-body {
-  background-color: #F4F2F8;
-  min-height: calc(100vh - 75px);
-  padding: 40px;
-  font-family: 'Poppins', sans-serif;
-}
-.feedback-container {
-  text-align: center;
-  padding: 50px; 
-  background-color: white; 
-  border-radius: 20px;
-  max-width: 600px; 
-  margin: 50px auto; 
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
-.feedback-container.error h2, .feedback-container.error p { 
-  color: #721c24; 
-}
-
-.profile-layout {
-  display: grid; 
-  grid-template-columns: 320px 1fr; 
-  gap: 40px;
-  max-width: 1400px; 
-  margin: 0 auto;
-}
-.user-sidebar .user-card {
-  background-color: white; 
-  padding: 30px; 
-  border-radius: 20px; 
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-  text-align: center; 
-  position: sticky; 
-  top: 100px;
-}
-.user-avatar {
-  width: 100px; 
-  height: 100px; 
-  border-radius: 50%; 
-  background-color: #b098d6; 
-  color: white;
-  font-size: 3rem; 
-  font-weight: 700; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  margin: 0 auto 20px auto; 
-  border: 4px solid #f7de8e;
-}
-.user-card h2 { 
-  margin: 0; 
-  font-size: 1.8rem; 
-}
-.user-card .user-email { 
-  color: #777; 
-  margin-bottom: 20px; 
-}
-.user-card .user-details { 
-  text-align: left; 
-  margin-top: 20px; 
-}
-.user-details p { 
-  margin-bottom: 10px; 
-  color: #555; 
-}
-.user-details strong { 
-  color: #333; 
-}
-.btn-logout {
-  width: 100%; 
-  margin-top: 20px; 
-  background-color: #f8d7da; 
-  color: #721c24;
-  border: none; 
-  padding: 12px; 
-  border-radius: 8px; 
-  font-weight: 600; 
-  cursor: pointer;
-}
-
-.main-content .content-section {
-  background-color: white; 
-  padding: 30px; 
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
-  margin-bottom: 40px;
-}
-.section-header {
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center;
-  margin-bottom: 20px; 
-  border-bottom: 2px solid #F4F2F8; 
-  padding-bottom: 15px;
-}
-.section-header h2 { 
-  margin: 0; 
-}
-.btn-primary {
-  background-color: #f7de8e; 
-  color: #8b7bab; 
-  font-weight: 700;
-  padding: 12px 25px; 
-  border-radius: 8px; 
-  border: none; 
-  cursor: pointer; 
-  transition: all 0.2s;
-}
-.btn-primary:hover { 
-  transform: translateY(-2px); 
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
-}
-.btn-primary:disabled { 
-  background-color: #ccc; 
-  cursor: not-allowed; 
-}
-
-.pets-grid, .reports-grid {
-  display: grid; 
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-  gap: 25px;
-}
-
-/* Estilos de las tarjetas de mascota */
-.pet-card {
-  border: 1px solid #f0f0f0; 
-  padding: 20px; 
-  border-radius: 15px; 
-  position: relative;
-  display: flex; 
-  flex-direction: column;
-}
-.pet-card h3 { 
-  margin: 0 0 5px 0; 
-}
-.pet-breed { 
-  color: #666; 
-  font-size: 0.9rem; 
-}
-.pet-description { 
-  flex-grow: 1; 
-  margin-top: 10px; 
-  color: #333; 
-}
-.pet-status {
-  position: absolute; 
-  top: 15px; 
-  right: 15px; 
-  padding: 4px 12px;
-  font-size: 0.8rem; 
-  border-radius: 20px; 
-  font-weight: 600; 
-  text-transform: capitalize;
-}
-.en-casa { 
-  background-color: #e8f5e9; 
-  color: #2e7d32; 
-}
-.perdida { background-color: #ffebee; 
-  color: #c62828; 
-}
-.pet-actions { 
-  margin-top: 15px; 
-  display: flex; 
-  gap: 10px; 
-}
-.btn-action {
-  padding: 6px 12px; 
-  border: 1px solid #ccc; 
-  background: #f9f9f9;
-  border-radius: 6px; 
-  cursor: pointer; 
-  font-size: 0.85rem; 
-  font-weight: 500;
-}
-.btn-action.report { 
-  border-color: #c62828; 
-  color: #c62828; 
-  background: white; 
-}
-
-.no-content-message { 
-  text-align: center; 
-  padding: 40px; 
-  border: 2px dashed #e0e0e0; 
-  border-radius: 15px; 
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed; 
-  top: 0; 
-  left: 0; 
-  width: 100%; 
-  height: 100%;
-  background-color: rgba(0,0,0,0.6); 
-  display: flex; 
-  justify-content: center;
-  align-items: center; 
-  z-index: 1000;
-}
-.modal-content {
-  background: white; 
-  padding: 30px 40px; 
-  border-radius: 15px;
-  width: 90%; 
-  max-width: 500px;
-}
-.modal-content h2 { 
-  margin-top: 0; 
-}
-.modal-content p { 
-  color: #666; 
-  margin-bottom: 25px; 
-}
-.modal-content form input, .modal-content form textarea {
-  width: 100%; 
-  padding: 12px; 
-  margin-bottom: 15px; 
-  border: 1px solid #ccc; 
-  border-radius: 8px;
-  font-family: 'Poppins', sans-serif;
-}
-.modal-actions { 
-  display: flex; 
-  justify-content: flex-end; 
-  gap: 10px; 
-  margin-top: 20px; 
-}
-.btn-secondary {
-  background: #eee; 
-  color: #333; 
-  padding: 12px 25px; 
-  border-radius: 8px; 
-  border: none; 
-  cursor: pointer;
-}
-.error-message { 
-  color: #c62828; 
-  margin-top: 15px; 
-  text-align: center; 
-  }
+/* Tus estilos existentes y nuevos combinados */
+.profile-body { background-color: #F4F2F8; min-height: calc(100vh - 75px); padding: 40px; font-family: 'Poppins', sans-serif; }
+.feedback-container { text-align: center; padding: 50px; background-color: white; border-radius: 20px; max-width: 600px; margin: 50px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+.feedback-container.error h2, .feedback-container.error p { color: #721c24; }
+.profile-layout { display: grid; grid-template-columns: 320px 1fr; gap: 40px; max-width: 1400px; margin: 0 auto; }
+.user-sidebar .user-card { background-color: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; position: sticky; top: 100px; }
+.user-avatar { width: 100px; height: 100px; border-radius: 50%; background-color: #b098d6; color: white; font-size: 3rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; border: 4px solid #f7de8e; }
+.user-card h2 { margin: 0; font-size: 1.8rem; }
+.user-card .user-email { color: #777; margin-bottom: 20px; word-break: break-all; }
+.user-card .user-details { text-align: left; margin-top: 20px; }
+.user-details p { margin-bottom: 10px; color: #555; }
+.user-details strong { color: #333; }
+.btn-logout { width: 100%; margin-top: 20px; background-color: #f8d7da; color: #721c24; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.main-content .content-section { background-color: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); margin-bottom: 40px; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #F4F2F8; padding-bottom: 15px; }
+.section-header h2 { margin: 0; }
+.btn-primary { background-color: #f7de8e; color: #8b7bab; font-weight: 700; padding: 12px 25px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.btn-primary:disabled { background-color: #ccc; cursor: not-allowed; transform: none; box-shadow: none;}
+.pets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+.pet-card { border: 1px solid #f0f0f0; padding: 15px; border-radius: 15px; position: relative; display: flex; flex-direction: column; background: #fafafa; }
+.pet-photo { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; margin-bottom: 15px; background-color: #eee; }
+.pet-info { flex-grow: 1; }
+.pet-card h3 { margin: 0 0 5px 0; }
+.pet-breed { color: #666; font-size: 0.9rem; }
+.pet-description { margin-top: 10px; color: #333; font-size: 0.95rem; }
+.pet-status { position: absolute; top: 10px; right: 10px; padding: 4px 12px; font-size: 0.8rem; border-radius: 20px; font-weight: 600; text-transform: capitalize; }
+.en-casa { background-color: #e8f5e9; color: #2e7d32; }
+.perdida { background-color: #ffebee; color: #c62828; }
+.pet-actions { margin-top: 15px; display: flex; gap: 10px; }
+.btn-action { padding: 6px 12px; border: 1px solid #ccc; background: white; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; }
+.btn-action.report { border-color: #c62828; color: #c62828; }
+.no-content-message { text-align: center; padding: 40px; border: 2px dashed #e0e0e0; border-radius: 15px; }
+.reports-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+.report-card-active { background-color: #fff; border-left: 5px solid #ff6f00; padding: 15px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.07); }
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.modal-content { background: white; padding: 30px 40px; border-radius: 15px; width: 90%; max-width: 500px; }
+.modal-content h2 { margin-top: 0; }
+.modal-content form input, .modal-content form textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; font-family: 'Poppins', sans-serif; }
+.modal-content form label { font-weight: 500; margin-bottom: 5px; display: block; }
+.image-upload-field { margin-top: 15px; }
+.image-preview { max-width: 100px; max-height: 100px; margin-top: 10px; border-radius: 5px; border: 1px solid #ddd; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.btn-secondary { background: #eee; color: #333; padding: 12px 25px; border-radius: 8px; border: none; cursor: pointer; }
+.btn-primary.report-confirm { background-color: #c62828; color: white; }
+.error-message { color: #c62828; margin-top: 15px; text-align: center; }
 </style>
