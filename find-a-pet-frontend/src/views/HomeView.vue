@@ -1,17 +1,17 @@
 <template>
   <div>
     <HeroSlider />
-    <ServicesSection />
+    <RecentReportsSection />
     <AboutUsSection />
     <ServicesHighlightsSection />
-    <TestimonalsSection />
+    <AdoptionPetsSection />
   </div>
 </template>
 
 <script setup>
 import HeroSlider from '@/components/homeComponents/HeroSlider.vue'
-import ServicesSection from '@/components/homeComponents/ServicesSection.vue'
+import RecentReportsSection from '@/components/homeComponents/RecentReportsSection.vue'
 import AboutUsSection from '@/components/homeComponents/AboutUsSection.vue';
 import ServicesHighlightsSection from '@/components/homeComponents/ServicesHighlightsSection.vue';
-import TestimonalsSection from '@/components/homeComponents/TestimonalsSection.vue';
+import AdoptionPetsSection from '@/components/homeComponents/AdoptionPetsSection.vue';
 </script>

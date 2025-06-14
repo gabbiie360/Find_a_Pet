@@ -20,27 +20,37 @@ class PetService {
   markAsFound(petId) {
     return apiClient.put(`/mascotas/${petId}/encontrada`);
   }
-  
+
   getPetQrCode(petId) {
     return apiClient.get(`/mascotas/${petId}/qr`);
   }
-  
+
   getLostPets(filters) {
-    // Axios convierte el objeto `params` en una query string: ?especie=Perro&ciudad=Sula
     return apiClient.get('/mascotas/perdidas', { params: filters });
   }
 
-  // La subida de imágenes es un caso especial porque usa FormData
   uploadPetImage(imageFile) {
     const formData = new FormData();
     formData.append('image', imageFile);
-    // Hacemos la petición a la URL completa y dejamos que axios ponga el Content-Type
     return apiClient.post('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
   }
+
+  // Obtener mascotas reportadas en los últimos 7 días
+  getRecentReports() {
+    return apiClient.get('/mascotas/recientes');
+  }
+
+
+  getPetsByStatus(status) {
+  return apiClient.get('/mascotas', {
+    params: { estado: status }
+  });
+}
+
 }
 
 export default new PetService();

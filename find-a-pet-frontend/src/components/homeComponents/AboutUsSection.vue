@@ -1,14 +1,14 @@
 <template>
   <section class="about-section" v-fade-in-on-scroll>
     <div class="container">
-      <h2 class="section-title">About Us</h2>
+      <h2 class="section-title">Sobre Nosotros</h2>
 
       <div class="about-grid">
         <div class="about-text">
-          <h3 class="about-subtitle">For your best friend</h3>
+          <h3 class="about-subtitle">Para tu mejor amigo</h3>
           <p class="about-description">
-            At <strong>Find a Pet</strong>, we care for every animal like family. We aim to offer
-            services that not only meet, but exceed your expectations with love, respect, and professionalism.
+            En <strong>Find a Pet</strong>, cuidamos a cada animal como parte de nuestra familia.
+            Ofrecemos servicios que buscan superar tus expectativas con amor, respeto y compromiso.
           </p>
 
           <div class="accordion">
@@ -65,18 +65,18 @@ const activeIndex = ref(null)
 
 const accordionItems = [
   {
-    title: 'Social Responsibility',
-    content: 'We actively support rescue shelters and promote responsible pet ownership through education.',
+    title: 'Responsabilidad Social',
+    content: 'Apoyamos activamente a refugios de animales y promovemos la tenencia responsable mediante educación comunitaria.',
     icon: '🐾',
   },
   {
-    title: 'Mission Statement',
-    content: 'To reunite lost pets with their families and promote adoption of animals in need.',
+    title: 'Nuestra Misión',
+    content: 'Reunir mascotas perdidas con sus familias y fomentar la adopción de animales que buscan un hogar.',
     icon: '🎯',
   },
   {
-    title: 'Value Added Services',
-    content: 'We provide grooming, checkups, and vaccination services with professional care.',
+    title: '¿Qué ofrecemos?',
+    content: 'Te ayudamos a reportar, encontrar, adoptar y compartir mascotas perdidas o en espera de una nueva familia.',
     icon: '💡',
   },
 ]
