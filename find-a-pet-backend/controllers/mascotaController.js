@@ -1,5 +1,6 @@
 // backend/controllers/mascotaController.js
 const Mascota = require('../models/Mascota');
+const qrcode = require('qrcode');
 
 // Crear una nueva mascota
 exports.crearMascota = async (req, res) => {
@@ -56,4 +57,90 @@ exports.reportarMascotaPerdida = async (req, res) => {
   }
 };
 
-// Aquí podríamos añadir funciones para actualizar y eliminar en el futuro
+exports.actualizarMascota = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const mascota = await Mascota.findById(id);
+    if (!mascota) return res.status(404).json({ msg: 'Mascota no encontrada' });
+    if (mascota.propietarioId.toString() !== req.user.id) {
+      return res.status(403).json({ msg: 'No autorizado' });
+    }
+    
+    // Si se envía una nueva foto, se añade, no reemplaza las anteriores.
+    if (req.body.fotoNueva) {
+      req.body.fotos = [...mascota.fotos, req.body.fotoNueva];
+    }
+
+    const mascotaActualizada = await Mascota.findByIdAndUpdate(id, req.body, { new: true });
+    res.status(200).json({ msg: 'Mascota actualizada', mascota: mascotaActualizada });
+  } catch (err) {
+    console.error('ERROR AL ACTUALIZAR MASCOTA:', err);
+    res.status(500).json({ msg: 'Error del servidor' });
+  }
+};
+
+exports.marcarComoEncontrada = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const mascota = await Mascota.findById(id);
+    if (!mascota) return res.status(404).json({ msg: 'Mascota no encontrada' });
+    if (mascota.propietarioId.toString() !== req.user.id) {
+      return res.status(403).json({ msg: 'No autorizado' });
+    }
+    mascota.estado = 'en casa';
+    mascota.fechaPerdida = null;
+    mascota.ultimaUbicacion = undefined;
+    await mascota.save();
+    res.status(200).json({ msg: 'Mascota marcada como encontrada', mascota });
+  } catch (err) {
+    // ... manejo de error
+  }
+};
+
+exports.obtenerMascotaPublico = async (req, res) => {
+  try {
+    const mascota = await Mascota.findById(req.params.id).populate('propietarioId', 'nombre telefono email');
+    if (!mascota) return res.status(404).json({ msg: 'Mascota no encontrada' });
+    res.status(200).json(mascota);
+  } catch (err) {
+    // ... manejo de error
+  }
+};
+
+exports.generarQrMascota = async (req, res) => {
+  try {
+    const petUrl = `${process.env.FRONTEND_URL}/pet/${req.params.id}`;
+    const qrCodeDataUrl = await qrcode.toDataURL(petUrl);
+    res.status(200).json({ qrCode: qrCodeDataUrl });
+  } catch (err) {
+    // ... manejo de error
+  }
+};
+
+exports.obtenerMascotasPerdidas = async (req, res) => {
+  try {
+    // 1. Objeto de filtro base: siempre buscamos mascotas 'perdida'.
+    const filtro = { estado: 'perdida' };
+
+    // 2. Añadimos filtros adicionales si vienen en la query de la URL
+    // Ejemplo: /api/mascotas/perdidas?especie=Perro&ciudad=Sula
+    if (req.query.especie) {
+      filtro.especie = req.query.especie;
+    }
+    if (req.query.ciudad) {
+      // Usamos una expresión regular para buscar sin importar mayúsculas/minúsculas
+      filtro.ciudad = new RegExp(req.query.ciudad, 'i');
+    }
+
+    // 3. Hacemos la búsqueda en la BD con los filtros construidos
+    const mascotas = await Mascota.find(filtro)
+      .populate('propietarioId', 'nombre') // Traemos el nombre del propietario
+      .sort({ fechaPerdida: -1 }); // Las más recientes primero
+
+    res.status(200).json(mascotas);
+
+  } catch (err) {
+    console.error('ERROR AL OBTENER MASCOTAS PERDIDAS:', err);
+    res.status(500).json({ msg: 'Error del servidor' });
+  }
+};
