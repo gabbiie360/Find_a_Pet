@@ -24,6 +24,11 @@ class PetService {
   getPetQrCode(petId) {
     return apiClient.get(`/mascotas/${petId}/qr`);
   }
+  
+  getLostPets(filters) {
+    // Axios convierte el objeto `params` en una query string: ?especie=Perro&ciudad=Sula
+    return apiClient.get('/mascotas/perdidas', { params: filters });
+  }
 
   // La subida de imágenes es un caso especial porque usa FormData
   uploadPetImage(imageFile) {

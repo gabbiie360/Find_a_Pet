@@ -116,3 +116,31 @@ exports.generarQrMascota = async (req, res) => {
     // ... manejo de error
   }
 };
+
+exports.obtenerMascotasPerdidas = async (req, res) => {
+  try {
+    // 1. Objeto de filtro base: siempre buscamos mascotas 'perdida'.
+    const filtro = { estado: 'perdida' };
+
+    // 2. Añadimos filtros adicionales si vienen en la query de la URL
+    // Ejemplo: /api/mascotas/perdidas?especie=Perro&ciudad=Sula
+    if (req.query.especie) {
+      filtro.especie = req.query.especie;
+    }
+    if (req.query.ciudad) {
+      // Usamos una expresión regular para buscar sin importar mayúsculas/minúsculas
+      filtro.ciudad = new RegExp(req.query.ciudad, 'i');
+    }
+
+    // 3. Hacemos la búsqueda en la BD con los filtros construidos
+    const mascotas = await Mascota.find(filtro)
+      .populate('propietarioId', 'nombre') // Traemos el nombre del propietario
+      .sort({ fechaPerdida: -1 }); // Las más recientes primero
+
+    res.status(200).json(mascotas);
+
+  } catch (err) {
+    console.error('ERROR AL OBTENER MASCOTAS PERDIDAS:', err);
+    res.status(500).json({ msg: 'Error del servidor' });
+  }
+};

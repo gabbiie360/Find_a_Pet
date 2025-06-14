@@ -332,7 +332,7 @@ const formattedJoinDate = computed(() => {
   return '';
 });
 
-const logout = () => { authStore.logout(); router.push('/login'); };
+const logout = () => { authStore.logout(); router.push('/LoginRegister'); };
 </script>
 
 <style scoped>
