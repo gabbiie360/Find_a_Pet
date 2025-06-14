@@ -117,7 +117,7 @@
                 <label for="recompensa">Recompensa (opcional)</label>
                 <input id="recompensa" type="number" v-model.number="reportForm.recompensa" placeholder="0">
                 <div class="modal-actions">
-                    <button type="button" @click="closeReportModal" class="btn btn-secondary">Cancelar</button>
+                    <button type="button" @click="closeReportModal" class="btn-secondary">Cancelar</button>
                     <button type="submit" class="btn-primary report-confirm" :disabled="isSubmitting">{{ isSubmitting ? 'Reportando...' : 'Confirmar Reporte' }}</button>
                 </div>
                 <p v-if="modalError" class="error-message">{{ modalError }}</p>
@@ -155,7 +155,6 @@
         <div v-else><p>Generando código...</p></div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -175,7 +174,6 @@ const error = ref('');
 const isSubmitting = ref(false);
 const modalError = ref('');
 
-// --- Lógica de Modales ---
 const showPetModal = ref(false);
 const showReportModal = ref(false);
 const showProfileModal = ref(false);
@@ -188,7 +186,6 @@ const petForm = reactive({ _id: null, nombre: '', especie: '', raza: '', descrip
 const reportForm = reactive({ fechaPerdida: '', ubicacionTexto: '', recompensa: 0 });
 const profileForm = reactive({ nombre: '', telefono: '', ciudad: '', fotoPerfil: '' });
 
-// --- Lógica de subida de imagen ---
 const imageFile = ref(null);
 const imagePreviewUrl = ref('');
 const profileImageFile = ref(null);
@@ -214,7 +211,6 @@ const fetchMisMascotas = async () => {
   } catch (err) { console.error("Error cargando mascotas:", err); }
 };
 
-// --- MANEJADORES DE LÓGICA ---
 const handleSavePet = async () => {
   isSubmitting.value = true;
   modalError.value = '';
@@ -245,7 +241,7 @@ const handleReportLost = async () => {
         const reportData = {
             fechaPerdida: reportForm.fechaPerdida,
             recompensa: reportForm.recompensa,
-            ultimaUbicacion: { type: 'Point', coordinates: [-88.025, 15.504] } // Placeholder, idealmente se obtiene de un mapa
+            ultimaUbicacion: { type: 'Point', coordinates: [-88.025, 15.504] }
         };
         await PetService.reportAsLost(selectedPet.value._id, reportData);
         await fetchMisMascotas();
@@ -281,7 +277,6 @@ const handleUpdateProfile = async () => {
     finally { isSubmitting.value = false; }
 };
 
-// --- MANEJADORES DE MODALES ---
 const openPetModal = (mascota) => {
   isEditing.value = !!mascota;
   Object.assign(petForm, mascota ? { ...mascota } : { _id: null, nombre: '', especie: '', raza: '', descripcion: '', fotos: [] });
@@ -323,7 +318,6 @@ const handleProfileImageSelection = (event) => {
   if (file) { profileImageFile.value = file; profileImagePreviewUrl.value = URL.createObjectURL(file); }
 };
 
-// --- PROPIEDADES COMPUTADAS ---
 const activeReports = computed(() => mascotas.value.filter(m => m.estado === 'perdida'));
 const formattedJoinDate = computed(() => {
   if (user.value?.fechaRegistro) {
@@ -332,50 +326,29 @@ const formattedJoinDate = computed(() => {
   return '';
 });
 
-const logout = () => { authStore.logout(); router.push('/LoginRegister'); };
+const logout = () => { authStore.logout(); router.push('/login'); };
 </script>
 
 <style scoped>
+/* ESTILOS COMPLETOS Y CORREGIDOS */
 .profile-body {
   background-color: #F4F2F8;
   min-height: 100vh;
   font-family: 'Poppins', sans-serif;
-  /* --- CORRECCIÓN #1: ESPACIADO PARA LA NAVBAR FIJA --- */
-  /* Añadimos un padding superior igual a la altura de tu navbar + un poco de margen */
-  padding-top: 115px; /* 75px de navbar + 40px de espacio */
+  padding-top: 115px; /* 75px de navbar + 40px de espacio libre */
   padding-left: 40px;
   padding-right: 40px;
   padding-bottom: 40px;
+  box-sizing: border-box;
 }
+
 .feedback-container { text-align: center; padding: 50px; background-color: white; border-radius: 20px; max-width: 600px; margin: 50px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
 .feedback-container.error h2, .feedback-container.error p { color: #721c24; }
-
 .profile-layout { display: grid; grid-template-columns: 320px 1fr; gap: 40px; max-width: 1400px; margin: 0 auto; }
-.user-sidebar .user-card { background-color: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; position: sticky; top: 115px; /* Ajustado para el nuevo padding */ }
+.user-sidebar .user-card { background-color: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; position: sticky; top: 115px; }
 
-.user-avatar {
-  width: 120px; /* Un poco más grande para más impacto */
-  height: 120px;
-  border-radius: 50%;
-  background-color: #b098d6;
-  color: white;
-  font-size: 3.5rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 20px auto;
-  border: 4px solid #f7de8e;
-  position: relative;
-  cursor: pointer;
-  overflow: hidden;
-}
-/* --- CORRECCIÓN #2: AJUSTE DE IMAGEN DE PERFIL --- */
-.user-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* La imagen cubre el círculo sin deformarse */
-}
+.user-avatar { width: 120px; height: 120px; border-radius: 50%; background-color: #b098d6; color: white; font-size: 3.5rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; border: 4px solid #f7de8e; position: relative; cursor: pointer; overflow: hidden; }
+.user-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .user-avatar .avatar-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); color: white; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; font-size: 1rem; }
 .user-avatar:hover .avatar-overlay { opacity: 1; }
 
@@ -394,19 +367,10 @@ const logout = () => { authStore.logout(); router.push('/LoginRegister'); };
 .btn-primary:disabled { background-color: #ccc; cursor: not-allowed; transform: none; box-shadow: none;}
 
 .pets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
-.pet-card { border: 1px solid #f0f0f0; padding: 15px; border-radius: 15px; position: relative; display: flex; flex-direction: column; background: #fafafa; }
-/* --- CORRECCIÓN #3: AJUSTE DE IMAGEN DE MASCOTA --- */
-.pet-photo {
-  width: 100%;
-  height: 180px; /* Altura fija para todas las tarjetas */
-  object-fit: cover; /* La magia sucede aquí */
-  border-radius: 10px;
-  margin-bottom: 15px;
-  background-color: #eee;
-}
-
+.pet-card, .report-card-active { border: 1px solid #f0f0f0; padding: 15px; border-radius: 15px; position: relative; display: flex; flex-direction: column; background: #fafafa; }
+.pet-photo { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; margin-bottom: 15px; background-color: #eee; }
 .pet-info { flex-grow: 1; }
-.pet-card h3 { margin: 0 0 5px 0; }
+.pet-card h3, .report-card-active h3 { margin: 0 0 5px 0; }
 .pet-breed { color: #666; font-size: 0.9rem; }
 .pet-description { margin-top: 10px; color: #333; font-size: 0.95rem; }
 .pet-status { position: absolute; top: 10px; right: 10px; padding: 4px 12px; font-size: 0.8rem; border-radius: 20px; font-weight: 600; text-transform: capitalize; }
@@ -419,10 +383,9 @@ const logout = () => { authStore.logout(); router.push('/LoginRegister'); };
 .btn-action.qr { border-color: #6c757d; color: #6c757d; }
 .no-content-message { text-align: center; padding: 40px; border: 2px dashed #e0e0e0; border-radius: 15px; }
 .reports-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
-.report-card-active { background-color: #fff; border-left: 5px solid #ff6f00; padding: 15px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.07); }
+.report-card-active { background-color: #fff; border-left: 5px solid #ff6f00; box-shadow: 0 5px 15px rgba(0,0,0,0.07); }
 
-/* --- ESTILOS DE MODALES (SIN CAMBIOS) --- */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
 .modal-content { background: white; padding: 30px 40px; border-radius: 15px; width: 90%; max-width: 500px; }
 .modal-content.qr-modal { text-align: center; }
 .qr-modal img { max-width: 80%; border: 1px solid #ddd; }
