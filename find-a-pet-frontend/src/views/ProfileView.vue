@@ -17,10 +17,10 @@
       <!-- Columna Izquierda: Información del Usuario -->
       <aside class="user-sidebar">
         <div class="user-card">
-          <div class="user-avatar" @click="openProfileModal">
+          <div class="user-avatar" @click="openImageViewer(user.fotoPerfil || placeholderImage)">
             <img v-if="user.fotoPerfil" :src="user.fotoPerfil" alt="Foto de perfil">
             <span v-else>{{ user.nombre.charAt(0).toUpperCase() }}</span>
-            <div class="avatar-overlay">Editar</div>
+            <div class="avatar-overlay" @click.stop="openProfileModal">Editar</div>
           </div>
           <h2>{{ user.nombre }}</h2>
           <p class="user-email">{{ user.email }}</p>
@@ -44,7 +44,7 @@
           </div>
           <div v-if="mascotas.length > 0" class="pets-grid">
             <div v-for="mascota in mascotas" :key="mascota._id" class="pet-card">
-              <img :src="mascota.fotos[0] || placeholderImage" alt="Foto de la mascota" class="pet-photo">
+              <img :src="mascota.fotos[0] || placeholderImage" alt="Foto de la mascota" class="pet-photo" @click="openImageViewer(mascota.fotos[0] || placeholderImage)">
               <div class="pet-info">
                 <h3>{{ mascota.nombre }}</h3>
                 <p class="pet-breed">{{ mascota.especie }} - {{ mascota.raza || 'No especificada' }}</p>
@@ -66,7 +66,7 @@
           <div class="section-header"><h2>Mis Reportes Activos</h2></div>
           <div v-if="activeReports.length > 0" class="reports-grid">
             <div v-for="reporte in activeReports" :key="reporte._id" class="report-card-active">
-              <img :src="reporte.fotos[0] || placeholderImage" alt="Foto de la mascota" class="pet-photo">
+              <img :src="reporte.fotos[0] || placeholderImage" alt="Foto de la mascota" class="pet-photo" @click="openImageViewer(reporte.fotos[0] || placeholderImage)">
               <div class="pet-info">
                  <h3>{{ reporte.nombre }} (Perdida)</h3>
                  <p class="pet-breed">Perdida desde: {{ new Date(reporte.fechaPerdida).toLocaleDateString() }}</p>
@@ -155,6 +155,14 @@
         <div v-else><p>Generando código...</p></div>
       </div>
     </div>
+
+    <!-- MODAL VISOR DE IMÁGENES -->
+    <div v-if="showImageViewer" class="modal-overlay image-viewer" @click="closeImageViewer">
+      <div class="image-viewer-content animate__animated animate__zoomIn">
+        <img :src="imageToView" alt="Vista ampliada">
+        <button @click="closeImageViewer" class="close-button">×</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -181,6 +189,8 @@ const showQrModal = ref(false);
 const qrCodeUrl = ref('');
 const isEditing = ref(false);
 const selectedPet = ref(null);
+const showImageViewer = ref(false);
+const imageToView = ref('');
 
 const petForm = reactive({ _id: null, nombre: '', especie: '', raza: '', descripcion: '', fotos: [] });
 const reportForm = reactive({ fechaPerdida: '', ubicacionTexto: '', recompensa: 0 });
@@ -283,21 +293,18 @@ const openPetModal = (mascota) => {
   imagePreviewUrl.value = mascota?.fotos[0] || '';
   showPetModal.value = true;
 };
-const closePetModal = () => {
-  showPetModal.value = false; modalError.value = ''; imageFile.value = null; imagePreviewUrl.value = '';
-};
+const closePetModal = () => { showPetModal.value = false; modalError.value = ''; imageFile.value = null; imagePreviewUrl.value = ''; };
 
 const openReportModal = (mascota) => { selectedPet.value = mascota; showReportModal.value = true; };
 const closeReportModal = () => { showReportModal.value = false; modalError.value = ''; };
 
-const openProfileModal = () => {
+const openProfileModal = (event) => {
+    event.stopPropagation();
     Object.assign(profileForm, user.value);
     profileImagePreviewUrl.value = user.value.fotoPerfil || '';
     showProfileModal.value = true;
 };
-const closeProfileModal = () => {
-    showProfileModal.value = false; profileImageFile.value = null; profileImagePreviewUrl.value = '';
-};
+const closeProfileModal = () => { showProfileModal.value = false; profileImageFile.value = null; profileImagePreviewUrl.value = ''; };
 
 const openQrModal = async (petId) => {
     qrCodeUrl.value = '';
@@ -309,14 +316,13 @@ const openQrModal = async (petId) => {
 };
 const closeQrModal = () => { showQrModal.value = false; };
 
-const handleImageSelection = (event) => {
-  const file = event.target.files[0];
-  if (file) { imageFile.value = file; imagePreviewUrl.value = URL.createObjectURL(file); }
+const openImageViewer = (imageUrl) => {
+  if (imageUrl) { imageToView.value = imageUrl; showImageViewer.value = true; }
 };
-const handleProfileImageSelection = (event) => {
-  const file = event.target.files[0];
-  if (file) { profileImageFile.value = file; profileImagePreviewUrl.value = URL.createObjectURL(file); }
-};
+const closeImageViewer = () => { showImageViewer.value = false; };
+
+const handleImageSelection = (event) => { const file = event.target.files[0]; if (file) { imageFile.value = file; imagePreviewUrl.value = URL.createObjectURL(file); } };
+const handleProfileImageSelection = (event) => { const file = event.target.files[0]; if (file) { profileImageFile.value = file; profileImagePreviewUrl.value = URL.createObjectURL(file); } };
 
 const activeReports = computed(() => mascotas.value.filter(m => m.estado === 'perdida'));
 const formattedJoinDate = computed(() => {
@@ -335,7 +341,7 @@ const logout = () => { authStore.logout(); router.push('/login'); };
   background-color: #F4F2F8;
   min-height: 100vh;
   font-family: 'Poppins', sans-serif;
-  padding-top: 115px; /* 75px de navbar + 40px de espacio libre */
+  padding-top: 115px; /* 75px de navbar + 40px de espacio */
   padding-left: 40px;
   padding-right: 40px;
   padding-bottom: 40px;
@@ -347,9 +353,9 @@ const logout = () => { authStore.logout(); router.push('/login'); };
 .profile-layout { display: grid; grid-template-columns: 320px 1fr; gap: 40px; max-width: 1400px; margin: 0 auto; }
 .user-sidebar .user-card { background-color: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; position: sticky; top: 115px; }
 
-.user-avatar { width: 120px; height: 120px; border-radius: 50%; background-color: #b098d6; color: white; font-size: 3.5rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; border: 4px solid #f7de8e; position: relative; cursor: pointer; overflow: hidden; }
+.user-avatar { width: 120px; height: 120px; border-radius: 50%; background-color: #b098d6; color: white; font-size: 3.5rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; border: 4px solid #f7de8e; position: relative; cursor: zoom-in; overflow: hidden; }
 .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.user-avatar .avatar-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); color: white; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; font-size: 1rem; }
+.user-avatar .avatar-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); color: white; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; font-size: 1rem; cursor: pointer; }
 .user-avatar:hover .avatar-overlay { opacity: 1; }
 
 .user-card h2 { margin: 0; font-size: 1.8rem; }
@@ -368,7 +374,7 @@ const logout = () => { authStore.logout(); router.push('/login'); };
 
 .pets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
 .pet-card, .report-card-active { border: 1px solid #f0f0f0; padding: 15px; border-radius: 15px; position: relative; display: flex; flex-direction: column; background: #fafafa; }
-.pet-photo { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; margin-bottom: 15px; background-color: #eee; }
+.pet-photo { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; margin-bottom: 15px; background-color: #eee; cursor: zoom-in; }
 .pet-info { flex-grow: 1; }
 .pet-card h3, .report-card-active h3 { margin: 0 0 5px 0; }
 .pet-breed { color: #666; font-size: 0.9rem; }
@@ -398,4 +404,57 @@ const logout = () => { authStore.logout(); router.push('/login'); };
 .btn-secondary { background: #eee; color: #333; padding: 12px 25px; border-radius: 8px; border: none; cursor: pointer; }
 .btn-primary.report-confirm { background-color: #c62828; color: white; }
 .error-message { color: #c62828; margin-top: 15px; text-align: center; }
+
+/* ==================================================================== */
+/*          NUEVOS ESTILOS DEFINITIVOS PARA EL VISOR DE IMÁGENES        */
+/* ==================================================================== */
+.modal-overlay.image-viewer {
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+}
+
+/* Contenedor relativo para posicionar el botón de cierre */
+.image-viewer-content {
+  position: relative;
+  /* El contenedor no necesita tamaño, dejará que la imagen lo defina */
+}
+
+/* La imagen es la que manda */
+.image-viewer-content img {
+  display: block;
+  /* La imagen se ajustará para caber dentro de estos límites */
+  max-width: 90vw;   /* No puede ser más ancha que el 90% de la ventana */
+  max-height: 90vh;  /* No puede ser más alta que el 90% de la ventana */
+  width: auto;       /* Mantiene la proporción */
+  height: auto;      /* Mantiene la proporción */
+  border-radius: 10px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  cursor: default;
+}
+
+/* El botón de cierre se posiciona relativo a la imagen */
+.image-viewer-content .close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparente para integrarse mejor */
+  color: white;
+  border: 2px solid white;
+  font-size: 1.8rem;
+  line-height: 36px; /* Ajuste para centrar la X */
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.image-viewer-content .close-button:hover {
+    transform: scale(1.1);
+    background-color: rgba(200, 0, 0, 0.8);
+}
 </style>
