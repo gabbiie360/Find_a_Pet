@@ -3,7 +3,6 @@
     <!-- Estado de Carga -->
     <div v-if="loading" class="feedback-container">
       <p>Cargando tu perfil...</p>
-      <!-- Aquí podrías añadir un componente de spinner/loading visualmente más atractivo -->
     </div>
 
     <!-- Estado de Error -->
@@ -13,14 +12,15 @@
       <button @click="logout" class="btn btn-secondary">Volver al Login</button>
     </div>
 
-    <!-- Contenido del Perfil (cuando todo está correcto) -->
+    <!-- Contenido del Perfil -->
     <div v-else-if="user" class="profile-layout">
-      
       <!-- Columna Izquierda: Información del Usuario -->
       <aside class="user-sidebar">
         <div class="user-card">
-          <div class="user-avatar">
-            <span>{{ user.nombre.charAt(0).toUpperCase() }}</span>
+          <div class="user-avatar" @click="openImageViewer(user.fotoPerfil || placeholderImage)">
+            <img v-if="user.fotoPerfil" :src="user.fotoPerfil" alt="Foto de perfil">
+            <span v-else>{{ user.nombre.charAt(0).toUpperCase() }}</span>
+            <div class="avatar-overlay" @click.stop="openProfileModal">Editar</div>
           </div>
           <h2>{{ user.nombre }}</h2>
           <p class="user-email">{{ user.email }}</p>
@@ -40,105 +40,171 @@
         <section class="content-section">
           <div class="section-header">
             <h2>Mis Mascotas</h2>
-            <button @click="openPetModal" class="btn btn-primary">Registrar Mascota</button>
+            <button @click="openPetModal(null)" class="btn btn-primary">Registrar Mascota</button>
           </div>
           <div v-if="mascotas.length > 0" class="pets-grid">
             <div v-for="mascota in mascotas" :key="mascota._id" class="pet-card">
-              <span class="pet-status" :class="mascota.estado.replace(' ', '-')">{{ mascota.estado }}</span>
-              <h3>{{ mascota.nombre }}</h3>
-              <p class="pet-breed">{{ mascota.especie }} - {{ mascota.raza || 'Sin raza especificada' }}</p>
-              <p class="pet-description">{{ mascota.descripcion }}</p>
-              <div class="pet-actions">
-                <button class="btn-action edit">Editar</button>
-                <button v-if="mascota.estado === 'en casa'" class="btn-action report">Reportar Perdida</button>
+              <img :src="mascota.fotos[0] || placeholderImage" alt="Foto de la mascota" class="pet-photo" @click="openImageViewer(mascota.fotos[0] || placeholderImage)">
+              <div class="pet-info">
+                <h3>{{ mascota.nombre }}</h3>
+                <p class="pet-breed">{{ mascota.especie }} - {{ mascota.raza || 'No especificada' }}</p>
+                <p class="pet-description">{{ mascota.descripcion }}</p>
               </div>
+              <div class="pet-actions">
+                <button @click="openPetModal(mascota)" class="btn-action edit">Editar</button>
+                <button v-if="mascota.estado === 'en casa'" @click="openReportModal(mascota)" class="btn-action report">Reportar Perdida</button>
+                <button @click="openQrModal(mascota._id)" class="btn-action qr">Ver QR</button>
+              </div>
+              <span class="pet-status" :class="mascota.estado.replace(' ', '-')">{{ mascota.estado }}</span>
             </div>
           </div>
-          <div v-else class="no-content-message">
-            <p>Aún no has registrado ninguna mascota. ¡Añade a tu primer compañero!</p>
-          </div>
+          <div v-else class="no-content-message"><p>Aún no has registrado ninguna mascota.</p></div>
         </section>
 
         <!-- SECCIÓN "MIS REPORTES ACTIVOS" -->
         <section class="content-section">
-          <div class="section-header">
-            <h2>Mis Reportes Activos</h2>
-          </div>
-          <div v-if="reports.length > 0" class="reports-grid">
-            <div v-for="report in reports" :key="report._id" class="report-card">
-              <span class="report-tag" :class="`tag-${report.tipo}`">{{ report.tipo }}</span>
-              <p class="report-description">{{ report.descripcion }}</p>
-              <div class="report-footer">
-                <span class="report-location">{{ report.ciudad }}</span>
-                <span class="report-date">{{ new Date(report.fecha).toLocaleDateString() }}</span>
+          <div class="section-header"><h2>Mis Reportes Activos</h2></div>
+          <div v-if="activeReports.length > 0" class="reports-grid">
+            <div v-for="reporte in activeReports" :key="reporte._id" class="report-card-active">
+              <img :src="reporte.fotos[0] || placeholderImage" alt="Foto de la mascota" class="pet-photo" @click="openImageViewer(reporte.fotos[0] || placeholderImage)">
+              <div class="pet-info">
+                 <h3>{{ reporte.nombre }} (Perdida)</h3>
+                 <p class="pet-breed">Perdida desde: {{ new Date(reporte.fechaPerdida).toLocaleDateString() }}</p>
+                 <p class="pet-description">Última vez vista en {{ reporte.ultimaUbicacion && reporte.ultimaUbicacion.coordinates ? 'coordenadas.' : 'ubicación no especificada.' }}</p>
+              </div>
+              <div class="pet-actions">
+                <button @click="handleMarkAsFound(reporte._id)" class="btn-action found">Marcar como Encontrada</button>
               </div>
             </div>
           </div>
-          <div v-else class="no-content-message">
-            <p>No tienes reportes activos en este momento.</p>
-          </div>
+          <div v-else class="no-content-message"><p>No tienes reportes activos en este momento.</p></div>
         </section>
       </main>
     </div>
 
-    <!-- MODAL PARA AGREGAR MASCOTA -->
+    <!-- MODAL PARA AGREGAR/EDITAR MASCOTA -->
     <div v-if="showPetModal" class="modal-overlay" @click.self="closePetModal">
       <div class="modal-content animate__animated animate__fadeInUp">
-        <h2>Registrar Nueva Mascota</h2>
-        <p>Mantén la información de tus compañeros a salvo.</p>
-        <form @submit.prevent="handleAgregarMascota">
-          <input type="text" v-model="newPetForm.nombre" placeholder="Nombre de la mascota" required>
-          <input type="text" v-model="newPetForm.especie" placeholder="Especie (ej. Perro, Gato)" required>
-          <input type="text" v-model="newPetForm.raza" placeholder="Raza (ej. Labrador, Siamés)">
-          <textarea v-model="newPetForm.descripcion" placeholder="Descripción y señas particulares..." required rows="4"></textarea>
+        <h2>{{ isEditing ? 'Editar Mascota' : 'Registrar Nueva Mascota' }}</h2>
+        <form @submit.prevent="handleSavePet">
+          <input type="text" v-model="petForm.nombre" placeholder="Nombre" required>
+          <input type="text" v-model="petForm.especie" placeholder="Especie" required>
+          <input type="text" v-model="petForm.raza" placeholder="Raza">
+          <textarea v-model="petForm.descripcion" placeholder="Descripción" required rows="3"></textarea>
+          <div class="image-upload-field">
+            <label for="petImage">Añadir foto:</label>
+            <input type="file" id="petImage" @change="handleImageSelection" accept="image/*">
+            <img v-if="imagePreviewUrl" :src="imagePreviewUrl" class="image-preview" alt="Vista previa">
+          </div>
           <div class="modal-actions">
-            <button type="button" @click="closePetModal" class="btn btn-secondary">Cancelar</button>
-            <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
-              {{ isSubmitting ? 'Guardando...' : 'Guardar Mascota' }}
-            </button>
+            <button type="button" @click="closePetModal" class="btn-secondary">Cancelar</button>
+            <button type="submit" class="btn-primary" :disabled="isSubmitting">{{ isSubmitting ? 'Guardando...' : 'Guardar' }}</button>
           </div>
           <p v-if="modalError" class="error-message">{{ modalError }}</p>
         </form>
+      </div>
+    </div>
+    
+    <!-- MODAL PARA REPORTAR PERDIDA -->
+    <div v-if="showReportModal" class="modal-overlay" @click.self="closeReportModal">
+        <div class="modal-content animate__animated animate__fadeInUp">
+            <h2>Reportar a "{{ selectedPet?.nombre }}" como perdida</h2>
+            <form @submit.prevent="handleReportLost">
+                <label for="fechaPerdida">Fecha en que se perdió</label>
+                <input id="fechaPerdida" type="date" v-model="reportForm.fechaPerdida" required>
+                <label for="ubicacionTexto">Última ubicación vista (ciudad, barrio)</label>
+                <input id="ubicacionTexto" type="text" placeholder="Ej: San Pedro Sula, Barrio Guamilito" v-model="reportForm.ubicacionTexto">
+                <label for="recompensa">Recompensa (opcional)</label>
+                <input id="recompensa" type="number" v-model.number="reportForm.recompensa" placeholder="0">
+                <div class="modal-actions">
+                    <button type="button" @click="closeReportModal" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-primary report-confirm" :disabled="isSubmitting">{{ isSubmitting ? 'Reportando...' : 'Confirmar Reporte' }}</button>
+                </div>
+                <p v-if="modalError" class="error-message">{{ modalError }}</p>
+            </form>
+        </div>
+    </div>
+    
+    <!-- MODAL PARA EDITAR PERFIL DE USUARIO -->
+    <div v-if="showProfileModal" class="modal-overlay" @click.self="closeProfileModal">
+        <div class="modal-content animate__animated animate__fadeInUp">
+            <h2>Editar Perfil</h2>
+            <form @submit.prevent="handleUpdateProfile">
+                <input type="text" v-model="profileForm.nombre" placeholder="Nombre completo">
+                <input type="text" v-model="profileForm.telefono" placeholder="Teléfono">
+                <input type="text" v-model="profileForm.ciudad" placeholder="Ciudad">
+                <div class="image-upload-field">
+                    <label>Foto de Perfil:</label>
+                    <input type="file" @change="handleProfileImageSelection" accept="image/*">
+                    <img v-if="profileImagePreviewUrl" :src="profileImagePreviewUrl" class="image-preview">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" @click="closeProfileModal" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-primary" :disabled="isSubmitting">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- MODAL PARA MOSTRAR CÓDIGO QR -->
+    <div v-if="showQrModal" class="modal-overlay" @click.self="closeQrModal">
+      <div class="modal-content qr-modal animate__animated animate__zoomIn">
+        <h2>Código QR para la Placa</h2>
+        <p>Escanea este código para ver la información pública de tu mascota.</p>
+        <img v-if="qrCodeUrl" :src="qrCodeUrl" alt="Código QR">
+        <div v-else><p>Generando código...</p></div>
+      </div>
+    </div>
+
+    <!-- MODAL VISOR DE IMÁGENES -->
+    <div v-if="showImageViewer" class="modal-overlay image-viewer" @click="closeImageViewer">
+      <div class="image-viewer-content animate__animated animate__zoomIn">
+        <img :src="imageToView" alt="Vista ampliada">
+        <button @click="closeImageViewer" class="close-button">×</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, reactive } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AuthService from '@/services/authService';
-import PetService from '@/services/petService'; // Importamos el servicio de mascotas
+import PetService from '@/services/petService';
 import { authStore } from '@/store/authStore';
+import placeholderImage from '@/assets/placeholder-pet.png';
 
 const router = useRouter();
-
-// Variables reactivas para los datos
 const user = ref(null);
-const reports = ref([]);
-const mascotas = ref([]); // Lista para las mascotas del usuario
+const mascotas = ref([]);
 const loading = ref(true);
 const error = ref('');
-
-// --- Lógica del Modal ---
-const showPetModal = ref(false);
 const isSubmitting = ref(false);
 const modalError = ref('');
-const newPetForm = reactive({
-  nombre: '',
-  especie: '',
-  raza: '',
-  descripcion: ''
-});
 
-// onMounted se ejecuta cuando el componente está listo
+const showPetModal = ref(false);
+const showReportModal = ref(false);
+const showProfileModal = ref(false);
+const showQrModal = ref(false);
+const qrCodeUrl = ref('');
+const isEditing = ref(false);
+const selectedPet = ref(null);
+const showImageViewer = ref(false);
+const imageToView = ref('');
+
+const petForm = reactive({ _id: null, nombre: '', especie: '', raza: '', descripcion: '', fotos: [] });
+const reportForm = reactive({ fechaPerdida: '', ubicacionTexto: '', recompensa: 0 });
+const profileForm = reactive({ nombre: '', telefono: '', ciudad: '', fotoPerfil: '' });
+
+const imageFile = ref(null);
+const imagePreviewUrl = ref('');
+const profileImageFile = ref(null);
+const profileImagePreviewUrl = ref('');
+
 onMounted(async () => {
   try {
-    // Obtenemos los datos del perfil (usuario y reportes) en una sola llamada
     const profileResponse = await AuthService.getProfileData();
     user.value = profileResponse.data.user;
-    reports.value = profileResponse.data.reports;
-    // Obtenemos las mascotas del usuario
     await fetchMisMascotas();
   } catch (err) {
     error.value = 'No se pudo cargar tu perfil. Tu sesión puede haber expirado.';
@@ -148,299 +214,247 @@ onMounted(async () => {
   }
 });
 
-// Función para obtener las mascotas y actualizar la lista
 const fetchMisMascotas = async () => {
   try {
-    const petsResponse = await PetService.getMyPets();
-    mascotas.value = petsResponse.data;
-  } catch (err) {
-    // Si falla la carga de mascotas, no rompemos toda la página, solo lo mostramos en consola
-    console.error("No se pudieron cargar las mascotas:", err);
-    error.value = 'No se pudieron cargar tus mascotas, pero tu perfil está aquí. Intenta recargar la página.';
-  }
+    const res = await PetService.getMyPets();
+    mascotas.value = res.data;
+  } catch (err) { console.error("Error cargando mascotas:", err); }
 };
 
-// --- Funciones del Modal ---
-const openPetModal = () => { showPetModal.value = true; };
-const closePetModal = () => {
-  showPetModal.value = false;
-  // Limpiar formulario y error al cerrar
-  Object.assign(newPetForm, { nombre: '', especie: '', raza: '', descripcion: '' });
-  modalError.value = '';
-};
-const handleAgregarMascota = async () => {
+const handleSavePet = async () => {
   isSubmitting.value = true;
   modalError.value = '';
   try {
-    await PetService.addPet(newPetForm);
-    await fetchMisMascotas(); // Recargamos la lista para mostrar la nueva mascota
+    let petDataPayload = { ...petForm };
+    if (imageFile.value) {
+      const res = await PetService.uploadPetImage(imageFile.value);
+      petDataPayload.fotos = [res.data.secure_url];
+    }
+    if (isEditing.value) {
+      await PetService.updatePet(petForm._id, petDataPayload);
+    } else {
+      await PetService.addPet(petDataPayload);
+    }
+    await fetchMisMascotas();
     closePetModal();
   } catch (err) {
-    modalError.value = 'Error al guardar la mascota. Revisa los datos e inténtalo de nuevo.';
+    modalError.value = 'Error al guardar. Por favor, revisa los datos.';
   } finally {
     isSubmitting.value = false;
   }
 };
 
-// Propiedad computada para formatear la fecha
+const handleReportLost = async () => {
+    isSubmitting.value = true;
+    modalError.value = '';
+    try {
+        const reportData = {
+            fechaPerdida: reportForm.fechaPerdida,
+            recompensa: reportForm.recompensa,
+            ultimaUbicacion: { type: 'Point', coordinates: [-88.025, 15.504] }
+        };
+        await PetService.reportAsLost(selectedPet.value._id, reportData);
+        await fetchMisMascotas();
+        closeReportModal();
+    } catch(err) {
+        modalError.value = 'Error al generar el reporte.';
+    } finally {
+        isSubmitting.value = false;
+    }
+};
+
+const handleMarkAsFound = async (petId) => {
+    try {
+        await PetService.markAsFound(petId);
+        await fetchMisMascotas();
+    } catch (err) { console.error("Error marcando como encontrada", err); }
+};
+
+const handleUpdateProfile = async () => {
+    isSubmitting.value = true;
+    try {
+        let profileData = { ...profileForm };
+        if (profileImageFile.value) {
+            const res = await PetService.uploadPetImage(profileImageFile.value);
+            profileData.fotoPerfil = res.data.secure_url;
+        }
+        const response = await AuthService.updateProfile(profileData);
+        const updatedUser = { ...authStore.user, user: response.data.user };
+        authStore.login(updatedUser);
+        user.value = response.data.user;
+        closeProfileModal();
+    } catch (err) { console.error("Error actualizando perfil", err); }
+    finally { isSubmitting.value = false; }
+};
+
+const openPetModal = (mascota) => {
+  isEditing.value = !!mascota;
+  Object.assign(petForm, mascota ? { ...mascota } : { _id: null, nombre: '', especie: '', raza: '', descripcion: '', fotos: [] });
+  imagePreviewUrl.value = mascota?.fotos[0] || '';
+  showPetModal.value = true;
+};
+const closePetModal = () => { showPetModal.value = false; modalError.value = ''; imageFile.value = null; imagePreviewUrl.value = ''; };
+
+const openReportModal = (mascota) => { selectedPet.value = mascota; showReportModal.value = true; };
+const closeReportModal = () => { showReportModal.value = false; modalError.value = ''; };
+
+const openProfileModal = (event) => {
+    event.stopPropagation();
+    Object.assign(profileForm, user.value);
+    profileImagePreviewUrl.value = user.value.fotoPerfil || '';
+    showProfileModal.value = true;
+};
+const closeProfileModal = () => { showProfileModal.value = false; profileImageFile.value = null; profileImagePreviewUrl.value = ''; };
+
+const openQrModal = async (petId) => {
+    qrCodeUrl.value = '';
+    showQrModal.value = true;
+    try {
+        const res = await PetService.getPetQrCode(petId);
+        qrCodeUrl.value = res.data.qrCode;
+    } catch (err) { console.error("Error generando QR", err); }
+};
+const closeQrModal = () => { showQrModal.value = false; };
+
+const openImageViewer = (imageUrl) => {
+  if (imageUrl) { imageToView.value = imageUrl; showImageViewer.value = true; }
+};
+const closeImageViewer = () => { showImageViewer.value = false; };
+
+const handleImageSelection = (event) => { const file = event.target.files[0]; if (file) { imageFile.value = file; imagePreviewUrl.value = URL.createObjectURL(file); } };
+const handleProfileImageSelection = (event) => { const file = event.target.files[0]; if (file) { profileImageFile.value = file; profileImagePreviewUrl.value = URL.createObjectURL(file); } };
+
+const activeReports = computed(() => mascotas.value.filter(m => m.estado === 'perdida'));
 const formattedJoinDate = computed(() => {
-  if (user.value && user.value.fechaRegistro) {
-    return new Date(user.value.fechaRegistro).toLocaleDateString('es-ES', {
-      year: 'numeric', month: 'long', day: 'numeric'
-    });
+  if (user.value?.fechaRegistro) {
+    return new Date(user.value.fechaRegistro).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
   }
   return '';
 });
 
-// Función para cerrar sesión
-const logout = () => {
-  authStore.logout();
-  router.push('/loginregister'); // Corregido para que apunte a la ruta correcta
-};
+const logout = () => { authStore.logout(); router.push('/login'); };
 </script>
 
 <style scoped>
-/* Estilos existentes (optimizados y con adiciones) */
+/* ESTILOS COMPLETOS Y CORREGIDOS */
 .profile-body {
   background-color: #F4F2F8;
-  min-height: calc(100vh - 75px);
-  padding: 40px;
+  min-height: 100vh;
   font-family: 'Poppins', sans-serif;
-}
-.feedback-container {
-  text-align: center;
-  padding: 50px; 
-  background-color: white; 
-  border-radius: 20px;
-  max-width: 600px; 
-  margin: 50px auto; 
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
-.feedback-container.error h2, .feedback-container.error p { 
-  color: #721c24; 
+  padding-top: 115px; /* 75px de navbar + 40px de espacio */
+  padding-left: 40px;
+  padding-right: 40px;
+  padding-bottom: 40px;
+  box-sizing: border-box;
 }
 
-.profile-layout {
-  display: grid; 
-  grid-template-columns: 320px 1fr; 
-  gap: 40px;
-  max-width: 1400px; 
-  margin: 0 auto;
-}
-.user-sidebar .user-card {
-  background-color: white; 
-  padding: 30px; 
-  border-radius: 20px; 
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-  text-align: center; 
-  position: sticky; 
-  top: 100px;
-}
-.user-avatar {
-  width: 100px; 
-  height: 100px; 
-  border-radius: 50%; 
-  background-color: #b098d6; 
-  color: white;
-  font-size: 3rem; 
-  font-weight: 700; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  margin: 0 auto 20px auto; 
-  border: 4px solid #f7de8e;
-}
-.user-card h2 { 
-  margin: 0; 
-  font-size: 1.8rem; 
-}
-.user-card .user-email { 
-  color: #777; 
-  margin-bottom: 20px; 
-}
-.user-card .user-details { 
-  text-align: left; 
-  margin-top: 20px; 
-}
-.user-details p { 
-  margin-bottom: 10px; 
-  color: #555; 
-}
-.user-details strong { 
-  color: #333; 
-}
-.btn-logout {
-  width: 100%; 
-  margin-top: 20px; 
-  background-color: #f8d7da; 
-  color: #721c24;
-  border: none; 
-  padding: 12px; 
-  border-radius: 8px; 
-  font-weight: 600; 
-  cursor: pointer;
-}
+.feedback-container { text-align: center; padding: 50px; background-color: white; border-radius: 20px; max-width: 600px; margin: 50px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+.feedback-container.error h2, .feedback-container.error p { color: #721c24; }
+.profile-layout { display: grid; grid-template-columns: 320px 1fr; gap: 40px; max-width: 1400px; margin: 0 auto; }
+.user-sidebar .user-card { background-color: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; position: sticky; top: 115px; }
 
-.main-content .content-section {
-  background-color: white; 
-  padding: 30px; 
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
-  margin-bottom: 40px;
-}
-.section-header {
-  display: flex; 
-  justify-content: space-between; 
+.user-avatar { width: 120px; height: 120px; border-radius: 50%; background-color: #b098d6; color: white; font-size: 3.5rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; border: 4px solid #f7de8e; position: relative; cursor: zoom-in; overflow: hidden; }
+.user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.user-avatar .avatar-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); color: white; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; font-size: 1rem; cursor: pointer; }
+.user-avatar:hover .avatar-overlay { opacity: 1; }
+
+.user-card h2 { margin: 0; font-size: 1.8rem; }
+.user-card .user-email { color: #777; margin-bottom: 20px; word-break: break-all; }
+.user-card .user-details { text-align: left; margin-top: 20px; }
+.user-details p { margin-bottom: 10px; color: #555; }
+.user-details strong { color: #333; }
+.btn-logout { width: 100%; margin-top: 20px; background-color: #f8d7da; color: #721c24; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+
+.main-content .content-section { background-color: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); margin-bottom: 40px; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #F4F2F8; padding-bottom: 15px; }
+.section-header h2 { margin: 0; }
+.btn-primary { background-color: #f7de8e; color: #8b7bab; font-weight: 700; padding: 12px 25px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.btn-primary:disabled { background-color: #ccc; cursor: not-allowed; transform: none; box-shadow: none;}
+
+.pets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+.pet-card, .report-card-active { border: 1px solid #f0f0f0; padding: 15px; border-radius: 15px; position: relative; display: flex; flex-direction: column; background: #fafafa; }
+.pet-photo { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; margin-bottom: 15px; background-color: #eee; cursor: zoom-in; }
+.pet-info { flex-grow: 1; }
+.pet-card h3, .report-card-active h3 { margin: 0 0 5px 0; }
+.pet-breed { color: #666; font-size: 0.9rem; }
+.pet-description { margin-top: 10px; color: #333; font-size: 0.95rem; }
+.pet-status { position: absolute; top: 10px; right: 10px; padding: 4px 12px; font-size: 0.8rem; border-radius: 20px; font-weight: 600; text-transform: capitalize; }
+.en-casa { background-color: #e8f5e9; color: #2e7d32; }
+.perdida { background-color: #ffebee; color: #c62828; }
+.pet-actions { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;}
+.btn-action { padding: 6px 12px; border: 1px solid #ccc; background: white; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; }
+.btn-action.report { border-color: #c62828; color: #c62828; }
+.btn-action.found { border-color: #2e7d32; color: #2e7d32; }
+.btn-action.qr { border-color: #6c757d; color: #6c757d; }
+.no-content-message { text-align: center; padding: 40px; border: 2px dashed #e0e0e0; border-radius: 15px; }
+.reports-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+.report-card-active { background-color: #fff; border-left: 5px solid #ff6f00; box-shadow: 0 5px 15px rgba(0,0,0,0.07); }
+
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+.modal-content { background: white; padding: 30px 40px; border-radius: 15px; width: 90%; max-width: 500px; }
+.modal-content.qr-modal { text-align: center; }
+.qr-modal img { max-width: 80%; border: 1px solid #ddd; }
+.modal-content h2 { margin-top: 0; }
+.modal-content form input, .modal-content form textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; font-family: 'Poppins', sans-serif; }
+.modal-content form label { font-weight: 500; margin-bottom: 5px; display: block; }
+.image-upload-field { margin-top: 15px; }
+.image-preview { max-width: 100px; max-height: 100px; margin-top: 10px; border-radius: 5px; border: 1px solid #ddd; object-fit: cover; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.btn-secondary { background: #eee; color: #333; padding: 12px 25px; border-radius: 8px; border: none; cursor: pointer; }
+.btn-primary.report-confirm { background-color: #c62828; color: white; }
+.error-message { color: #c62828; margin-top: 15px; text-align: center; }
+
+/* ==================================================================== */
+/*          NUEVOS ESTILOS DEFINITIVOS PARA EL VISOR DE IMÁGENES        */
+/* ==================================================================== */
+.modal-overlay.image-viewer {
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
   align-items: center;
-  margin-bottom: 20px; 
-  border-bottom: 2px solid #F4F2F8; 
-  padding-bottom: 15px;
-}
-.section-header h2 { 
-  margin: 0; 
-}
-.btn-primary {
-  background-color: #f7de8e; 
-  color: #8b7bab; 
-  font-weight: 700;
-  padding: 12px 25px; 
-  border-radius: 8px; 
-  border: none; 
-  cursor: pointer; 
-  transition: all 0.2s;
-}
-.btn-primary:hover { 
-  transform: translateY(-2px); 
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
-}
-.btn-primary:disabled { 
-  background-color: #ccc; 
-  cursor: not-allowed; 
-}
-
-.pets-grid, .reports-grid {
-  display: grid; 
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-  gap: 25px;
-}
-
-/* Estilos de las tarjetas de mascota */
-.pet-card {
-  border: 1px solid #f0f0f0; 
-  padding: 20px; 
-  border-radius: 15px; 
-  position: relative;
-  display: flex; 
-  flex-direction: column;
-}
-.pet-card h3 { 
-  margin: 0 0 5px 0; 
-}
-.pet-breed { 
-  color: #666; 
-  font-size: 0.9rem; 
-}
-.pet-description { 
-  flex-grow: 1; 
-  margin-top: 10px; 
-  color: #333; 
-}
-.pet-status {
-  position: absolute; 
-  top: 15px; 
-  right: 15px; 
-  padding: 4px 12px;
-  font-size: 0.8rem; 
-  border-radius: 20px; 
-  font-weight: 600; 
-  text-transform: capitalize;
-}
-.en-casa { 
-  background-color: #e8f5e9; 
-  color: #2e7d32; 
-}
-.perdida { background-color: #ffebee; 
-  color: #c62828; 
-}
-.pet-actions { 
-  margin-top: 15px; 
-  display: flex; 
-  gap: 10px; 
-}
-.btn-action {
-  padding: 6px 12px; 
-  border: 1px solid #ccc; 
-  background: #f9f9f9;
-  border-radius: 6px; 
-  cursor: pointer; 
-  font-size: 0.85rem; 
-  font-weight: 500;
-}
-.btn-action.report { 
-  border-color: #c62828; 
-  color: #c62828; 
-  background: white; 
-}
-
-.no-content-message { 
-  text-align: center; 
-  padding: 40px; 
-  border: 2px dashed #e0e0e0; 
-  border-radius: 15px; 
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed; 
-  top: 0; 
-  left: 0; 
-  width: 100%; 
-  height: 100%;
-  background-color: rgba(0,0,0,0.6); 
-  display: flex; 
   justify-content: center;
-  align-items: center; 
-  z-index: 1000;
+  cursor: zoom-out;
 }
-.modal-content {
-  background: white; 
-  padding: 30px 40px; 
-  border-radius: 15px;
-  width: 90%; 
-  max-width: 500px;
+
+/* Contenedor relativo para posicionar el botón de cierre */
+.image-viewer-content {
+  position: relative;
+  /* El contenedor no necesita tamaño, dejará que la imagen lo defina */
 }
-.modal-content h2 { 
-  margin-top: 0; 
+
+/* La imagen es la que manda */
+.image-viewer-content img {
+  display: block;
+  /* La imagen se ajustará para caber dentro de estos límites */
+  max-width: 90vw;   /* No puede ser más ancha que el 90% de la ventana */
+  max-height: 90vh;  /* No puede ser más alta que el 90% de la ventana */
+  width: auto;       /* Mantiene la proporción */
+  height: auto;      /* Mantiene la proporción */
+  border-radius: 10px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  cursor: default;
 }
-.modal-content p { 
-  color: #666; 
-  margin-bottom: 25px; 
-}
-.modal-content form input, .modal-content form textarea {
-  width: 100%; 
-  padding: 12px; 
-  margin-bottom: 15px; 
-  border: 1px solid #ccc; 
-  border-radius: 8px;
-  font-family: 'Poppins', sans-serif;
-}
-.modal-actions { 
-  display: flex; 
-  justify-content: flex-end; 
-  gap: 10px; 
-  margin-top: 20px; 
-}
-.btn-secondary {
-  background: #eee; 
-  color: #333; 
-  padding: 12px 25px; 
-  border-radius: 8px; 
-  border: none; 
+
+/* El botón de cierre se posiciona relativo a la imagen */
+.image-viewer-content .close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparente para integrarse mejor */
+  color: white;
+  border: 2px solid white;
+  font-size: 1.8rem;
+  line-height: 36px; /* Ajuste para centrar la X */
+  text-align: center;
   cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
 }
-.error-message { 
-  color: #c62828; 
-  margin-top: 15px; 
-  text-align: center; 
-  }
+
+.image-viewer-content .close-button:hover {
+    transform: scale(1.1);
+    background-color: rgba(200, 0, 0, 0.8);
+}
 </style>

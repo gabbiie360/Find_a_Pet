@@ -1,31 +1,45 @@
-// src/services/petService.js
-import axios from 'axios';
-import { authStore } from '@/store/authStore';
-
-const API_URL = 'http://localhost:5000/api/mascotas/';
-
-const getAuthHeaders = () => {
-  const user = authStore.user;
-  if (user && user.token) {
-    return { 'Authorization': `Bearer ${user.token}` };
-  }
-  return {};
-};
+import apiClient from './api'; // Importamos nuestro cliente de API centralizado
 
 class PetService {
-  // Obtener todas las mascotas del usuario logueado
   getMyPets() {
-    return axios.get(API_URL, { headers: getAuthHeaders() });
+    return apiClient.get('/mascotas');
   }
 
-  // Añadir una nueva mascota
   addPet(petData) {
-    return axios.post(API_URL, petData, { headers: getAuthHeaders() });
+    return apiClient.post('/mascotas', petData);
   }
 
-  // Reportar una mascota como perdida
+  updatePet(petId, petData) {
+    return apiClient.put(`/mascotas/${petId}`, petData);
+  }
+
   reportAsLost(petId, reportData) {
-    return axios.put(`${API_URL}${petId}/reportar`, reportData, { headers: getAuthHeaders() });
+    return apiClient.put(`/mascotas/${petId}/reportar`, reportData);
+  }
+
+  markAsFound(petId) {
+    return apiClient.put(`/mascotas/${petId}/encontrada`);
+  }
+  
+  getPetQrCode(petId) {
+    return apiClient.get(`/mascotas/${petId}/qr`);
+  }
+  
+  getLostPets(filters) {
+    // Axios convierte el objeto `params` en una query string: ?especie=Perro&ciudad=Sula
+    return apiClient.get('/mascotas/perdidas', { params: filters });
+  }
+
+  // La subida de imágenes es un caso especial porque usa FormData
+  uploadPetImage(imageFile) {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    // Hacemos la petición a la URL completa y dejamos que axios ponga el Content-Type
+    return apiClient.post('/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
   }
 }
 
