@@ -336,31 +336,75 @@ const logout = () => { authStore.logout(); router.push('/LoginRegister'); };
 </script>
 
 <style scoped>
-/* ESTILOS OPTIMIZADOS Y COMPLETOS */
-.profile-body { background-color: #F4F2F8; min-height: calc(100vh - 75px); padding: 40px; font-family: 'Poppins', sans-serif; }
+.profile-body {
+  background-color: #F4F2F8;
+  min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
+  /* --- CORRECCIÓN #1: ESPACIADO PARA LA NAVBAR FIJA --- */
+  /* Añadimos un padding superior igual a la altura de tu navbar + un poco de margen */
+  padding-top: 115px; /* 75px de navbar + 40px de espacio */
+  padding-left: 40px;
+  padding-right: 40px;
+  padding-bottom: 40px;
+}
 .feedback-container { text-align: center; padding: 50px; background-color: white; border-radius: 20px; max-width: 600px; margin: 50px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
 .feedback-container.error h2, .feedback-container.error p { color: #721c24; }
+
 .profile-layout { display: grid; grid-template-columns: 320px 1fr; gap: 40px; max-width: 1400px; margin: 0 auto; }
-.user-sidebar .user-card { background-color: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; position: sticky; top: 100px; }
-.user-avatar { width: 100px; height: 100px; border-radius: 50%; background-color: #b098d6; color: white; font-size: 3rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; border: 4px solid #f7de8e; position: relative; cursor: pointer; overflow: hidden; }
-.user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.user-sidebar .user-card { background-color: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; position: sticky; top: 115px; /* Ajustado para el nuevo padding */ }
+
+.user-avatar {
+  width: 120px; /* Un poco más grande para más impacto */
+  height: 120px;
+  border-radius: 50%;
+  background-color: #b098d6;
+  color: white;
+  font-size: 3.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px auto;
+  border: 4px solid #f7de8e;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+/* --- CORRECCIÓN #2: AJUSTE DE IMAGEN DE PERFIL --- */
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* La imagen cubre el círculo sin deformarse */
+}
 .user-avatar .avatar-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); color: white; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; font-size: 1rem; }
 .user-avatar:hover .avatar-overlay { opacity: 1; }
+
 .user-card h2 { margin: 0; font-size: 1.8rem; }
 .user-card .user-email { color: #777; margin-bottom: 20px; word-break: break-all; }
 .user-card .user-details { text-align: left; margin-top: 20px; }
 .user-details p { margin-bottom: 10px; color: #555; }
 .user-details strong { color: #333; }
 .btn-logout { width: 100%; margin-top: 20px; background-color: #f8d7da; color: #721c24; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+
 .main-content .content-section { background-color: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); margin-bottom: 40px; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #F4F2F8; padding-bottom: 15px; }
 .section-header h2 { margin: 0; }
 .btn-primary { background-color: #f7de8e; color: #8b7bab; font-weight: 700; padding: 12px 25px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s; }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 .btn-primary:disabled { background-color: #ccc; cursor: not-allowed; transform: none; box-shadow: none;}
+
 .pets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
 .pet-card { border: 1px solid #f0f0f0; padding: 15px; border-radius: 15px; position: relative; display: flex; flex-direction: column; background: #fafafa; }
-.pet-photo { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; margin-bottom: 15px; background-color: #eee; }
+/* --- CORRECCIÓN #3: AJUSTE DE IMAGEN DE MASCOTA --- */
+.pet-photo {
+  width: 100%;
+  height: 180px; /* Altura fija para todas las tarjetas */
+  object-fit: cover; /* La magia sucede aquí */
+  border-radius: 10px;
+  margin-bottom: 15px;
+  background-color: #eee;
+}
+
 .pet-info { flex-grow: 1; }
 .pet-card h3 { margin: 0 0 5px 0; }
 .pet-breed { color: #666; font-size: 0.9rem; }
@@ -376,6 +420,8 @@ const logout = () => { authStore.logout(); router.push('/LoginRegister'); };
 .no-content-message { text-align: center; padding: 40px; border: 2px dashed #e0e0e0; border-radius: 15px; }
 .reports-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
 .report-card-active { background-color: #fff; border-left: 5px solid #ff6f00; padding: 15px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.07); }
+
+/* --- ESTILOS DE MODALES (SIN CAMBIOS) --- */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
 .modal-content { background: white; padding: 30px 40px; border-radius: 15px; width: 90%; max-width: 500px; }
 .modal-content.qr-modal { text-align: center; }
