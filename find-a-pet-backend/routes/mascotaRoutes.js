@@ -2,25 +2,46 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
-const { crearMascota, obtenerMisMascotas, reportarMascotaPerdida, actualizarMascota, marcarComoEncontrada, obtenerMascotaPublico, generarQrMascota, obtenerMascotasPerdidas } = require('../controllers/mascotaController');
 
-// Todas estas rutas están protegidas y requieren un token válido.
+const {
+  crearMascota,
+  obtenerMisMascotas,
+  reportarMascotaPerdida,
+  actualizarMascota,
+  marcarComoEncontrada,
+  obtenerMascotaPublico,
+  generarQrMascota,
+  obtenerMascotasPerdidas,
+  getRecentReports // ✅ IMPORTAR ESTE
+} = require('../controllers/mascotaController');
 
-// POST /api/mascotas -> Crear una nueva mascota
+// Todas estas rutas están protegidas y requieren un token válido
+
+// Crear una nueva mascota
 router.post('/', verifyToken, crearMascota);
 
-// GET /api/mascotas -> Obtener las mascotas del usuario logueado
+// Obtener las mascotas del usuario logueado
 router.get('/', verifyToken, obtenerMisMascotas);
 
-// PUT /api/mascotas/:id/reportar -> Marcar una mascota como perdida
+// Marcar una mascota como perdida
 router.put('/:id/reportar', verifyToken, reportarMascotaPerdida);
 
-// PUT /api/mascotas/:id -> Actualizar una mascota
+// Actualizar una mascota
 router.put('/:id', verifyToken, actualizarMascota);
 
+// Marcar mascota como encontrada
 router.put('/:id/encontrada', verifyToken, marcarComoEncontrada);
-router.get('/:id/public', obtenerMascotaPublico); // Ruta pública, sin verifyToken
+
+// Obtener mascota de forma pública (por ID)
+router.get('/:id/public', obtenerMascotaPublico);
+
+// Generar código QR para mascota
 router.get('/:id/qr', verifyToken, generarQrMascota);
+
+// Obtener mascotas perdidas (con filtros)
 router.get('/perdidas', obtenerMascotasPerdidas);
+
+// Obtener reportes recientes de los últimos 7 días
+router.get('/recientes', getRecentReports);
 
 module.exports = router;

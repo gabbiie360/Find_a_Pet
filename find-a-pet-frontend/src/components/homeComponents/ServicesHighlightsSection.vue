@@ -19,26 +19,27 @@
 <script setup>
 const services = [
   {
-    icon: 'fa-solid fa-dog',
-    title: 'Housing',
-    description: 'Housing support with care and attention to your pet’s comfort.',
+    icon: 'fa-solid fa-dog', // Reportes
+    title: 'Reportes de mascotas',
+    description: 'Publicá casos de mascotas perdidas, encontradas o en adopción para que más personas puedan ayudar.'
   },
   {
-    icon: 'fa-solid fa-hand-holding-heart',
-    title: 'High Quality',
-    description: 'Premium services with compassion and high standards.',
+    icon: 'fa-solid fa-magnifying-glass-location', // Búsqueda inteligente
+    title: 'Búsqueda inteligente',
+    description: 'Filtrá por ciudad, especie o fecha para encontrar reportes más fácilmente y colaborar mejor.'
   },
   {
-    icon: 'fa-solid fa-paw',
-    title: 'Vet Services',
-    description: 'On-demand medical care and routine wellness checks.',
+    icon: 'fa-solid fa-heart-circle-plus', // Adopciones
+    title: 'Adopciones',
+    description: 'Descubrí animales que buscan una familia y animáte a darles un nuevo hogar.'
   },
   {
-    icon: 'fa-solid fa-user-nurse',
-    title: 'Special Care',
-    description: 'Personalized care for pets with special needs or recovery.',
-  },
+    icon: 'fa-solid fa-share-nodes', // Compartir
+    title: 'Comparte y ayuda',
+    description: 'Difundí reportes por redes sociales y WhatsApp para aumentar las posibilidades de encontrar a su dueño.'
+  }
 ]
+
 </script>
 
 
