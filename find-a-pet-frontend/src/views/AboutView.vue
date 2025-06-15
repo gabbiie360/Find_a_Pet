@@ -1,31 +1,32 @@
 <template>
   <section class="about-section">
     <div class="container">
-      <h1 class="title" v-fade-in-on-scroll>About Find a Pet</h1>
+      <h1 class="title" v-fade-in-on-scroll>Acerca de Find a Pet</h1>
       <p class="intro" v-fade-in-on-scroll>
-        We help connect lost, found, and adoptable pets with their future families.
+        Ayudamos a conectar mascotas perdidas, encontradas o en adopción con sus futuras familias.
       </p>
 
       <div class="features">
         <div class="feature-box" v-fade-in-on-scroll>
           <i class="fas fa-search-location"></i>
-          <h3>Find Lost Pets</h3>
-          <p>Use our smart search to help reunite families with their beloved animals.</p>
+          <h3>Encontrá mascotas perdidas</h3>
+          <p>Usá nuestra búsqueda inteligente para reunir familias con sus animales queridos.</p>
         </div>
         <div class="feature-box" v-fade-in-on-scroll>
           <i class="fas fa-home"></i>
-          <h3>Pet Adoption</h3>
-          <p>Give pets a second chance by adopting those in need of a loving home.</p>
+          <h3>Adopción de mascotas</h3>
+          <p>Brindales una segunda oportunidad adoptando mascotas que necesitan un hogar lleno de amor.</p>
         </div>
         <div class="feature-box" v-fade-in-on-scroll>
           <i class="fas fa-hands-helping"></i>
-          <h3>Community Support</h3>
-          <p>Join a caring community dedicated to animal welfare and support.</p>
+          <h3>Apoyo comunitario</h3>
+          <p>Unite a una comunidad solidaria dedicada al bienestar animal y la ayuda mutua.</p>
         </div>
       </div>
     </div>
   </section>
 </template>
+
 
 <script setup>
 // No se necesita lógica

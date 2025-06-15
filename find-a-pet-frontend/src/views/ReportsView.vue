@@ -1,14 +1,15 @@
 <template>
   <div class="search-page-body">
     <div class="search-header">
-      <h1>Encuentra una Mascota Perdida</h1>
-      <p>Explora los reportes y ayuda a una mascota a volver a casa.</p>
+      <h1>Explora los Reportes de Mascotas</h1>
+      <p>Filtra por tipo de reporte, especie o ciudad para encontrar o ayudar a una mascota.</p>
     </div>
 
     <!-- Barra de Filtros -->
     <div class="filter-bar">
       <form @submit.prevent="performSearch" class="filter-form">
-        <input type="text" v-model="filters.ciudad" placeholder="Buscar por ciudad..." class="filter-input">
+        <input type="text" v-model="filters.ciudad" placeholder="Buscar por ciudad..." class="filter-input" />
+
         <select v-model="filters.especie" class="filter-select">
           <option value="">Todas las especies</option>
           <option value="Perro">Perro</option>
@@ -16,7 +17,17 @@
           <option value="Loro">Loro</option>
           <option value="Otro">Otro</option>
         </select>
-        <button type="submit" class="btn btn-primary">Buscar</button>
+
+        <select v-model="filters.estado" class="filter-select">
+          <option value="">Todos los estados</option>
+          <option value="perdida">Perdida</option>
+          <option value="encontrada">Encontrada</option>
+          <option value="adopcion">Adopción</option>
+        </select>
+
+        <input type="date" v-model="filters.fecha" class="filter-select" />
+
+        <button type="submit" class="btn-primary">Buscar</button>
       </form>
     </div>
 
@@ -24,47 +35,66 @@
     <div class="results-container">
       <div v-if="loading" class="feedback-message">Cargando reportes...</div>
       <div v-else-if="error" class="feedback-message error">{{ error }}</div>
-      <div v-else-if="lostPets.length === 0" class="feedback-message">No se encontraron mascotas con esos criterios.</div>
+      <div v-else-if="filteredPets.length === 0" class="feedback-message">No se encontraron mascotas con esos criterios.</div>
       <div v-else class="pets-grid">
-        <!-- Tarjeta de Mascota Perdida -->
-        <div v-for="mascota in lostPets" :key="mascota._id" class="pet-card">
-          <img :src="mascota.fotos[0] || placeholderImage" alt="Foto de la mascota" class="pet-photo">
+        <div
+          v-for="mascota in filteredPets"
+          :key="mascota._id"
+          class="pet-card"
+          :class="{
+            'border-lost': mascota.estado === 'perdida',
+            'border-found': mascota.estado === 'encontrada',
+            'border-adopt': mascota.estado === 'adopcion'
+          }"
+        >
+          <img :src="mascota.fotos[0] || placeholderImage" alt="Foto de la mascota" class="pet-photo" />
           <div class="pet-info">
             <h3>{{ mascota.nombre }}</h3>
             <p class="pet-breed">{{ mascota.especie }} - {{ mascota.raza || 'No especificada' }}</p>
             <p class="pet-description lost-info">
-              Perdida el {{ new Date(mascota.fechaPerdida).toLocaleDateString() }}
+              {{ estadoTexto(mascota.estado) }}
+              <span v-if="mascota.fechaPerdida">
+                - {{ new Date(mascota.fechaPerdida).toLocaleDateString() }}
+              </span>
             </p>
           </div>
-          <router-link :to="`/pet/${mascota._id}`" class="btn-action view-more">
-            Ver Más
-          </router-link>
+          <router-link :to="`/pet/${mascota._id}`" class="btn-action view-more">Ver Más</router-link>
         </div>
+      </div>
+
+      <!-- Paginación -->
+      <div v-if="filteredPets.length > 0" class="pagination-controls">
+        <button @click="filters.page--" :disabled="filters.page === 1">Anterior</button>
+        <span>Página {{ filters.page }}</span>
+        <button @click="filters.page++">Siguiente</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import PetService from '@/services/petService';
 import placeholderImage from '@/assets/placeholder-pet.png';
 
-const lostPets = ref([]);
+const filteredPets = ref([]);
 const loading = ref(true);
 const error = ref('');
 
 const filters = reactive({
   ciudad: '',
   especie: '',
+  estado: '',
+  fecha: '',
+  page: 1
 });
 
 const performSearch = async () => {
   loading.value = true;
   error.value = '';
   try {
-    const response = await PetService.getLostPets(filters);
-    lostPets.value = response.data;
+    const response = await PetService.getFilteredPets({ ...filters });
+    filteredPets.value = response.data;
   } catch (err) {
     error.value = 'No se pudieron cargar los reportes. Inténtalo más tarde.';
     console.error(err);
@@ -73,17 +103,33 @@ const performSearch = async () => {
   }
 };
 
-// Cargar los reportes iniciales cuando el componente se monta
+// Ejecutar búsqueda cada vez que cambia la página
+watch(() => filters.page, performSearch);
+
+const estadoTexto = (estado) => {
+  switch (estado) {
+    case 'perdida':
+      return 'Mascota Perdida';
+    case 'encontrada':
+      return 'Mascota Encontrada';
+    case 'adopcion':
+      return 'Mascota en Adopción';
+    default:
+      return 'Estado desconocido';
+  }
+};
+
 onMounted(performSearch);
 </script>
 
 <style scoped>
 .search-page-body {
   background-color: #F4F2F8;
-  min-height: calc(100vh - 75px);
-  padding: 40px;
+  min-height: 100vh;
+  padding: 120px 40px 40px;
   font-family: 'Poppins', sans-serif;
 }
+
 .search-header {
   text-align: center;
   margin-bottom: 40px;
@@ -96,26 +142,28 @@ onMounted(performSearch);
   font-size: 1.2rem;
   color: #666;
 }
-
 .filter-bar {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto 40px auto;
   padding: 20px;
   background: white;
   border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 .filter-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 15px;
   align-items: center;
 }
-.filter-input, .filter-select {
+.filter-input,
+.filter-select {
   flex-grow: 1;
   padding: 12px;
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 1rem;
+  min-width: 200px;
 }
 .btn-primary {
   background-color: #f7de8e;
@@ -126,7 +174,6 @@ onMounted(performSearch);
   border: none;
   cursor: pointer;
 }
-
 .results-container {
   max-width: 1400px;
   margin: 0 auto;
@@ -140,28 +187,33 @@ onMounted(performSearch);
 .feedback-message.error {
   color: #c62828;
 }
-
 .pets-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 30px;
 }
-
 .pet-card {
   background: white;
   border-radius: 15px;
   overflow: hidden;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.07);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
   display: flex;
   flex-direction: column;
   transition: transform 0.3s, box-shadow 0.3s;
-  border-left: 5px solid #ff6f00; /* Borde naranja para destacar que están perdidas */
 }
 .pet-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
 }
-
+.border-lost {
+  border-left: 5px solid #ff6f00;
+}
+.border-found {
+  border-left: 5px solid #4caf50;
+}
+.border-adopt {
+  border-left: 5px solid #2196f3;
+}
 .pet-photo {
   width: 100%;
   height: 200px;
@@ -195,5 +247,25 @@ onMounted(performSearch);
   color: white;
   text-decoration: none;
   font-weight: 600;
+}
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 30px;
+}
+.pagination-controls button {
+  background-color: #8b7bab;
+  color: white;
+  font-weight: bold;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.pagination-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

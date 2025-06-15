@@ -1,3 +1,4 @@
+// frontend/services/petService.js
 import apiClient from './api'; // Importamos nuestro cliente de API centralizado
 
 class PetService {
@@ -44,11 +45,15 @@ class PetService {
     return apiClient.get('/mascotas/recientes');
   }
 
-
   getPetsByStatus(status) {
-  return apiClient.get('/mascotas', {
-    params: { estado: status }
-  });
+    return apiClient.get('/mascotas', {
+      params: { estado: status }
+    });
+  }
+
+  // Nuevo: Obtener mascotas con filtros combinados (especie, ciudad, estado)
+ getFilteredPets(filters) {
+  return apiClient.get('/mascotas/filtradas', { params: filters });
 }
 
 }

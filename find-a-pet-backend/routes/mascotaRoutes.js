@@ -12,7 +12,8 @@ const {
   obtenerMascotaPublico,
   generarQrMascota,
   obtenerMascotasPerdidas,
-  getRecentReports // ✅ IMPORTAR ESTE
+  getRecentReports,
+  obtenerMascotasFiltradas 
 } = require('../controllers/mascotaController');
 
 // Todas estas rutas están protegidas y requieren un token válido
@@ -43,5 +44,7 @@ router.get('/perdidas', obtenerMascotasPerdidas);
 
 // Obtener reportes recientes de los últimos 7 días
 router.get('/recientes', getRecentReports);
+
+router.get('/filtradas', obtenerMascotasFiltradas);
 
 module.exports = router;
