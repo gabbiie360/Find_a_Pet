@@ -5,7 +5,7 @@ import ContactForm from '@/views/ContactView.vue'
 import LoginRegisterView from '@/views/LoginRegisterView.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import PetPublicView from '@/views/PetPublicView.vue';
-import LostPetsView from '@/views/LostPetsView.vue';
+import ReportsView from '@/views/ReportsView.vue';
 
 
 const routes = [
@@ -15,7 +15,8 @@ const routes = [
   { path: '/loginregister', name: 'LoginRegister', component: LoginRegisterView },
   { path: '/profileview', name: 'ProfileView', component: ProfileView },
   { path: '/pet/:id', name: 'pet-public', component: PetPublicView},
-  { path: '/buscar-perdidas', name: 'search-lost-pets', component: LostPetsView}
+  { path: '/reports', name: 'ReportsView', component: ReportsView }
+
 ]
 
 const router = createRouter({

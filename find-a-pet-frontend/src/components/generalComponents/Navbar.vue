@@ -49,7 +49,7 @@
             </li>
             <li class="nav-item">
               <RouterLink to="/loginregister" class="nav-link nav-link-signup">
-                Sign In/Sign Up
+                Iniciar Sesión / Registrarse
               </RouterLink>
             </li>
           </template>
@@ -86,9 +86,10 @@ import { authStore } from '@/store/authStore';
 
 // Links estáticos de navegación que no cambian
 const navLinks = [
-  { path: '/', label: 'Home' },
-  { path: '/about', label: 'About' },
-  { path: '/contact', label: 'Contact' },
+  { path: '/', label: 'Inicio' },
+  { path: '/about', label: 'Sobre Nosotros' },
+  { path: '/contact', label: 'Contactanos' },
+  { path: '/reports', label: 'Reportes' },
 ];
 
 const router = useRouter();
@@ -104,7 +105,7 @@ const handleLogout = () => {
 
 <style scoped>
 /* ==================================================================== */
-/*                  TUS ESTILOS ORIGINALES (INTACTOS)                   */
+/*                   ESTILOS ORIGINALES                                 */
 /* ==================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap');

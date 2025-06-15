@@ -35,7 +35,7 @@
                       d="M15.24 8.94a1.76 1.76 0 1 0 0-3.52 1.76 1.76 0 0 0 0 3.52Zm3.72 1.2c-.96.18-1.7 1.06-1.88 2.12s.3 2 1.14 2.2 1.88-.6 2.08-1.66-.36-2.12-1.34-2.66ZM8.76 8.94a1.76 1.76 0 1 0 0-3.52 1.76 1.76 0 0 0 0 3.52Zm-3.72 1.2c-.98.54-1.46 1.6-1.34 2.66s1.1 1.84 2.08 1.66 1.46-1.14 1.14-2.2-.92-1.94-1.88-2.12Zm3.5 4.98c-.84.5-1.02 1.56-.42 2.38s1.62 2.22 4.06 2.22 3.42-1.4 4.02-2.22.42-1.88-.42-2.38a4.84 4.84 0 0 0-4.08-.36 4.89 4.89 0 0 0-2.16.36Zm4.7-4.98a1.76 1.76 0 1 0 0-3.52 1.76 1.76 0 0 0 0 3.52Z"
                     />
                   </svg>
-                  <span>Contact us</span>
+                  <span>Contactanos</span>
                 </RouterLink>
               </div>
             </div>
@@ -61,24 +61,26 @@ const currentSlide = ref(0)
 const slides = [
   {
     image: new URL('@/assets/slider1.jpg', import.meta.url).href,
-    title: 'We Love Pets!',
-    subtitle: 'The best care and love for your furry friends',
+    title: '¡Amamos a los animales!',
+    subtitle: 'El mejor cuidado y amor para tus amigos peludos',
     link: '/contact',
   },
   {
     image: new URL('@/assets/slider2.jpg', import.meta.url).href,
-    title: 'Lost or Found a Pet?',
-    subtitle: 'Report and find missing pets in your community',
+    title: '¿Perdiste o encontraste una mascota?',
+    subtitle: 'Reportá y encontrá mascotas perdidas en tu comunidad',
     link: '/contact',
   },
   {
     image: new URL('@/assets/slider3.jpg', import.meta.url).href,
-    title: 'Adopt a New Friend!',
-    subtitle: 'Give a pet a loving home today',
+    title: '¡Adoptá un nuevo amigo!',
+    subtitle: 'Dale un hogar lleno de amor a una mascota hoy mismo',
     link: '/contact',
   },
 ]
 </script>
+
+
 
 <style scoped>
 .hero-section {

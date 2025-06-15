@@ -1,3 +1,4 @@
+// backend/controllers/mascotaController.js
 const Mascota = require('../models/Mascota');
 const qrcode = require('qrcode');
 
@@ -158,3 +159,35 @@ exports.getRecentReports = async (req, res) => {
     res.status(500).json({ msg: 'Error al obtener reportes recientes' });
   }
 };
+
+// Obtener mascotas con filtros avanzados y paginación
+exports.obtenerMascotasFiltradas = async (req, res) => {
+  try {
+    const { ciudad, especie, estado, fecha, page = 1 } = req.query;
+    const filtro = {};
+
+    if (estado) filtro.estado = estado;
+    if (especie) filtro.especie = especie;
+    if (ciudad) filtro.ciudad = new RegExp(ciudad, 'i'); // búsqueda flexible
+    if (fecha) {
+      const fechaInicio = new Date(fecha);
+      const fechaFin = new Date(fecha);
+      fechaFin.setDate(fechaFin.getDate() + 1);
+      filtro.fechaPerdida = { $gte: fechaInicio, $lt: fechaFin };
+    }
+
+    const limit = 10;
+    const skip = (parseInt(page) - 1) * limit;
+
+    const mascotas = await Mascota.find(filtro)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json(mascotas);
+  } catch (err) {
+    console.error('ERROR AL OBTENER MASCOTAS FILTRADAS:', err);
+    res.status(500).json({ msg: 'Error del servidor' });
+  }
+};
+
