@@ -8,31 +8,31 @@
           <div class="auth-container">
             <div class="auth-header">
               <img src="@/assets/logo.png" alt="Find a Pet Logo" class="logo">
-              <h2>Welcome Back!</h2>
-              <p>Please enter your details to sign in.</p>
+              <h2>¡Bienvenido!</h2>
+              <p>Por favor ingresa tus datos para iniciar sesión.</p>
             </div>
 
             <form class="auth-form" @submit.prevent="handleLogin">
               <div v-if="loginError" class="error-message">{{ loginError }}</div>
 
               <div class="form-group">
-                <label>Email</label>
+                <label>Correo</label>
                 <input type="email" v-model="loginForm.email" required />
               </div>
 
               <div class="form-group">
-                <label>Password</label>
+                <label>Contraseña</label>
                 <input type="password" v-model="loginForm.password" required />
               </div>
 
               <button type="submit" class="btn-primary" :disabled="loading">
-                <span v-if="loading && !showRegister">Signing In...</span>
-                <span v-else>Sign In</span>
+                <span v-if="loading && !showRegister">Iniciando Sesión...</span>
+                <span v-else>Iniciar Sesión</span>
               </button>
             </form>
 
             <div class="switch-link">
-              <p>Don't have an account? <a href="#" @click.prevent="toggleCard">Sign up for free</a></p>
+              <p>¿No tienes una cuenta? <a href="#" @click.prevent="toggleCard">¡Resitrate, es gratis!</a></p>
             </div>
           </div>
         </div>
@@ -42,8 +42,8 @@
           <div class="auth-container">
             <div class="auth-header">
               <img src="@/assets/logo.png" alt="Find a Pet Logo" class="logo">
-              <h2>Create Account</h2>
-              <p>Join our community to find your pet!</p>
+              <h2>Crea tu Cuenta</h2>
+              <p>¡Unete a nuestra comunidad y encuentra a tu mascota!</p>
             </div>
 
             <form class="auth-form" @submit.prevent="handleRegister">
@@ -51,32 +51,32 @@
               <div v-if="registerError" class="error-message">{{ registerError }}</div>
 
               <div class="form-group">
-                <label>Full Name</label>
+                <label>Nombre Completo</label>
                 <input v-model="registerForm.nombre" required />
               </div>
 
               <div class="form-group">
-                <label>Email</label>
+                <label>Correo</label>
                 <input type="email" v-model="registerForm.email" required />
               </div>
 
               <div class="form-group">
-                <label>Phone</label>
+                <label>Numero de Telefono</label>
                 <input type="tel" v-model="registerForm.telefono" required />
               </div>
 
               <div class="form-group">
-                <label>Country</label>
+                <label>Pais</label>
                 <select v-model="registerForm.pais" required>
-                  <option value="">Select country</option>
+                  <option value="">Selecciona</option>
                   <option value="Honduras">Honduras</option>
                 </select>
               </div>
 
               <div class="form-group">
-                <label>Department</label>
+                <label>Departmento</label>
                 <select v-model="registerForm.departamento" required @change="loadCiudades">
-                  <option value="">Select department</option>
+                  <option value="">Selecciona</option>
                   <option v-for="(ciudades, depto) in departamentos" :key="depto" :value="depto">
                     {{ depto }}
                   </option>
@@ -84,26 +84,26 @@
               </div>
 
               <div class="form-group">
-                <label>City</label>
+                <label>Ciudad</label>
                 <select v-model="registerForm.ciudad" required>
-                  <option value="">Select city</option>
+                  <option value="">Selecciona</option>
                   <option v-for="c in ciudadesDisponibles" :key="c" :value="c">{{ c }}</option>
                 </select>
               </div>
 
               <div class="form-group">
-                <label>Password</label>
+                <label>Contraseña</label>
                 <input type="password" v-model="registerForm.password" required />
               </div>
 
               <button type="submit" class="btn-primary" :disabled="loading">
-                <span v-if="loading && showRegister">Signing Up...</span>
-                <span v-else>Sign Up</span>
+                <span v-if="loading && showRegister">Registrando tu cuenta...</span>
+                <span v-else>Registrar</span>
               </button>
             </form>
 
             <div class="switch-link">
-              <p>Already have an account? <a href="#" @click.prevent="toggleCard">Sign In</a></p>
+              <p>¿Ya tienes una cuenta? <a href="#" @click.prevent="toggleCard">Inicia Sesión</a></p>
             </div>
           </div>
         </div>
