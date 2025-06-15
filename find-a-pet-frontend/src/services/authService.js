@@ -17,21 +17,14 @@ class AuthService {
     return apiClient.post('/auth/register', userData);
   }
 
-  /**
-   * Obtiene los datos del perfil del usuario logueado.
-   * El token se añade automáticamente gracias al interceptor de apiClient.
-   */
-  getProfileData() {
-    return apiClient.get('/auth/me');
-  }
+ getProfileData() {
+  return apiClient.get('/auth/profile');
+}
 
-  /**
-   * Actualiza los datos del perfil del usuario logueado.
-   * El token se añade automáticamente.
-   */
-  updateProfile(userData) {
-    return apiClient.put('/auth/me', userData);
-  }
+updateProfile(userData) {
+  return apiClient.put('/auth/profile', userData);
+}
+
 }
 
 export default new AuthService();

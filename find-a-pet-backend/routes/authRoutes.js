@@ -1,16 +1,22 @@
 const express = require('express');
 const router = express.Router();
+const {
+  registerUser,
+  loginUser,
+  getUserProfile,
+  updateUserProfile,
+  forgotPassword,
+  resetPassword
+} = require('../controllers/authController');
 const verifyToken = require('../middleware/verifyToken');
-const { registerUser, loginUser, getUserProfile, updateUserProfile } = require('../controllers/authController');
+
+
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
-
-// --- NUEVA RUTA PROTEGIDA ---
-// GET /api/auth/me -> devuelve los datos del usuario actual
-// Usamos el middleware 'verifyToken' para asegurarnos de que solo usuarios logueados puedan acceder
-router.get('/me', verifyToken, getUserProfile);
-router.put('/me', verifyToken, updateUserProfile);
-
+router.get('/profile', verifyToken, getUserProfile);
+router.put('/profile', verifyToken, updateUserProfile);
+router.post('/forgot-password', forgotPassword); // NUEVA
+router.post('/reset-password/:token', resetPassword); // NUEVA
 
 module.exports = router;

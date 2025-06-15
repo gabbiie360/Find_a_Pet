@@ -3,8 +3,71 @@ const Report = require('../models/Report');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-// --- DECLARAMOS TODAS LAS FUNCIONES COMO CONSTANTES ---
+// Controlador para manejar el restablecimiento de contraseña
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) return res.status(404).json({ msg: 'Correo no registrado' });
+
+  const token = crypto.randomBytes(32).toString('hex');
+  user.resetPasswordToken = token;
+  user.resetPasswordExpires = Date.now() + 3600000; // 1 hora
+  await user.save();
+
+  const resetLink = `http://localhost:5173/reset-password/${token}`;
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_FROM,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to: user.email,
+    subject: 'Restablecer contraseña',
+    html: `<p>Hola ${user.nombre},</p>
+           <p>Haz clic aquí para cambiar tu contraseña:</p>
+           <a href="${resetLink}">${resetLink}</a>`
+  };
+
+  try {
+    console.log("Intentando enviar correo desde:", process.env.EMAIL_FROM);
+    console.log("Hacia:", user.email);
+
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ msg: 'Correo enviado para restablecer contraseña' });
+  } catch (error) {
+    console.error('Error al enviar correo:', error);
+    res.status(500).json({ msg: 'Error al enviar el correo.' });
+  }
+};
+
+
+// Cambiar contraseña desde token (reset)
+const resetPassword = async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  const user = await User.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpires: { $gt: Date.now() }
+  });
+
+  if (!user) return res.status(400).json({ msg: 'Token inválido o expirado' });
+
+  user.password = await bcrypt.hash(password, 10);
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+  await user.save();
+
+  res.status(200).json({ msg: 'Contraseña actualizada correctamente' });
+};
 // REGISTRO
 const registerUser = async (req, res) => {
   try {
@@ -102,5 +165,7 @@ module.exports = {
   registerUser,
   loginUser,
   getUserProfile,
-  updateUserProfile
+  updateUserProfile,
+  forgotPassword,
+  resetPassword
 };

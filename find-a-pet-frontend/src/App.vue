@@ -18,7 +18,7 @@ body {
   color: #333;
   margin: 0;
   font-family: 'Lato', sans-serif;
-}
+} /* <--- AGREGA ESTA LLAVE DE CIERRE */
 
 main {
   padding: 0;
