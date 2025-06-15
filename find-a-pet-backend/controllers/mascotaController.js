@@ -86,6 +86,7 @@ exports.marcarComoEncontrada = async (req, res) => {
     }
     mascota.estado = 'en casa';
     mascota.fechaPerdida = null;
+    mascota.fechaEncontrada = new Date();
     mascota.ultimaUbicacion = undefined;
     await mascota.save();
     res.status(200).json({ msg: 'Mascota marcada como encontrada', mascota });

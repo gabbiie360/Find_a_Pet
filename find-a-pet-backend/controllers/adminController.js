@@ -11,10 +11,14 @@ exports.getDashboardStats = async (req, res) => {
     const totalMascotas = await Mascota.countDocuments();
     const mascotasPerdidas = await Mascota.countDocuments({ estado: 'perdida' });
     const totalReportes = await Report.countDocuments();
+    
+    // --- CÁLCULO DE LA NUEVA MÉTRICA ---
+    const mascotasEncontradas = await Mascota.countDocuments({ fechaEncontrada: { $exists: true, $ne: null } });
 
+    // --- CÁLCULO PARA EL GRÁFICO ---
     const hoy = new Date();
     const hace7Dias = subDays(hoy, 7);
-
+    
     const nuevosUsuarios = await User.aggregate([
         { $match: { fechaRegistro: { $gte: hace7Dias } } },
         { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$fechaRegistro" } }, count: { $sum: 1 } } },
@@ -26,9 +30,15 @@ exports.getDashboardStats = async (req, res) => {
         { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
         { $sort: { _id: 1 } }
     ]);
+
+    const mascotasEncontradasDiarias = await Mascota.aggregate([
+        { $match: { fechaEncontrada: { $gte: hace7Dias } } },
+        { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$fechaEncontrada" } }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+    ]);
     
     // Aquí podrías añadir más estadísticas complejas en el futuro
-    res.json({ totalUsers, totalMascotas, mascotasPerdidas, totalReportes, nuevosUsuarios, nuevasMascotas });
+    res.json({ totalUsers, totalMascotas, mascotasPerdidas, totalReportes, nuevosUsuarios, nuevasMascotas, mascotasEncontradasDiarias });
   } catch (err) { res.status(500).json({ msg: 'Error del servidor' }); }
 };
 

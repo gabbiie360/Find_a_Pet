@@ -27,7 +27,9 @@ const mascotaSchema = new Schema({
     coordinates: { type: [Number] } // [longitud, latitud]
   },
   fechaPerdida: { type: Date },
-  recompensa: { type: Number, default: 0 }
+  recompensa: { type: Number, default: 0 },
+  fechaEncontrada: { type: Date } 
+
 
 }, { timestamps: true }); // Añade createdAt y updatedAt automáticamente
 
