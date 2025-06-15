@@ -7,6 +7,8 @@ class AdminService {
   getPets() { return apiClient.get('/admin/mascotas'); }
   deleteUser(userId) { return apiClient.delete(`/admin/users/${userId}`); }
   deletePet(petId) { return apiClient.delete(`/admin/mascotas/${petId}`); }
+  createUser(userData) { return apiClient.post('/admin/users', userData); }
+   updateUser(userId, userData) { return apiClient.put(`/admin/users/${userId}`, userData); }
 }
 
 export default new AdminService();

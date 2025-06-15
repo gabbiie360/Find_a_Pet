@@ -1,6 +1,7 @@
 // backend/controllers/adminController.js
 const User = require('../models/User');
 const Mascota = require('../models/Mascota');
+const bcrypt = require('bcrypt');
 const Report = require('../models/Report'); // Importamos el modelo de Reportes
 const { subDays, format } = require('date-fns');
 
@@ -73,4 +74,43 @@ exports.deleteMascota = async (req, res) => {
         await Mascota.findByIdAndDelete(req.params.id);
         res.json({ msg: 'Mascota eliminada.' });
     } catch (err) { res.status(500).json({ msg: 'Error del servidor' }); }
+};
+
+// Crear un nuevo usuario desde el panel de admin
+exports.createUser = async (req, res) => {
+  try {
+    const { nombre, email, telefono, ciudad, password, rol } = req.body;
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ msg: 'Este correo ya está registrado.' });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({ nombre, email, telefono, ciudad, password: hashedPassword, rol });
+    
+    await newUser.save();
+    res.status(201).json(newUser);
+  } catch (err) { res.status(500).json({ msg: 'Error del servidor al crear usuario.' }); }
+};
+
+// Actualizar un usuario existente
+exports.updateUser = async (req, res) => {
+  try {
+    const { nombre, email, telefono, ciudad, rol } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ msg: 'Usuario no encontrado.' });
+
+    // Actualizar campos
+    user.nombre = nombre;
+    user.email = email;
+    user.telefono = telefono;
+    user.ciudad = ciudad;
+    user.rol = rol;
+
+    // Opcional: Si se envía una nueva contraseña, la hasheamos y actualizamos.
+    if (req.body.password) {
+      user.password = await bcrypt.hash(req.body.password, 10);
+    }
+    
+    const updatedUser = await user.save();
+    res.status(200).json(updatedUser);
+  } catch (err) { res.status(500).json({ msg: 'Error del servidor al actualizar usuario.' }); }
 };
