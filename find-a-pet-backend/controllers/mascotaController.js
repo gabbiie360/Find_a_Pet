@@ -163,31 +163,29 @@ exports.getRecentReports = async (req, res) => {
 // Obtener mascotas con filtros avanzados y paginación
 exports.obtenerMascotasFiltradas = async (req, res) => {
   try {
-    const { ciudad, especie, estado, fecha, page = 1 } = req.query;
-    const filtro = {};
+    const { ciudad, especie, estado, fecha } = req.query;
 
-    if (estado) filtro.estado = estado;
+    const filtro = {
+      estado: { $ne: 'en casa' } // Excluir mascotas que no están reportadas
+    };
+
     if (especie) filtro.especie = especie;
-    if (ciudad) filtro.ciudad = new RegExp(ciudad, 'i'); // búsqueda flexible
+    if (estado) filtro.estado = estado;
+    if (ciudad) filtro.descripcion = new RegExp(ciudad, 'i');
     if (fecha) {
-      const fechaInicio = new Date(fecha);
-      const fechaFin = new Date(fecha);
-      fechaFin.setDate(fechaFin.getDate() + 1);
-      filtro.fechaPerdida = { $gte: fechaInicio, $lt: fechaFin };
+      const selectedDate = new Date(fecha);
+      selectedDate.setHours(0, 0, 0, 0);
+      const nextDate = new Date(selectedDate);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      filtro.createdAt = { $gte: selectedDate, $lt: nextDate };
     }
 
-    const limit = 10;
-    const skip = (parseInt(page) - 1) * limit;
-
-    const mascotas = await Mascota.find(filtro)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
+    const mascotas = await Mascota.find(filtro).sort({ createdAt: -1 });
     res.status(200).json(mascotas);
   } catch (err) {
     console.error('ERROR AL OBTENER MASCOTAS FILTRADAS:', err);
-    res.status(500).json({ msg: 'Error del servidor' });
+    res.status(500).json({ msg: 'Error al obtener los reportes filtrados' });
   }
 };
 
