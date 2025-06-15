@@ -163,26 +163,23 @@ exports.getRecentReports = async (req, res) => {
 // Obtener mascotas con filtros avanzados y paginación
 exports.obtenerMascotasFiltradas = async (req, res) => {
   try {
-    const { ciudad, especie, estado, fecha, page = 1 } = req.query;
-    const filtro = {};
+    const filtro = {
+      estado: { $in: ['perdida', 'encontrada', 'adopcion'] } 
+    };
 
-    if (estado) filtro.estado = estado;
-    if (especie) filtro.especie = especie;
-    if (ciudad) filtro.ciudad = new RegExp(ciudad, 'i'); // búsqueda flexible
-    if (fecha) {
-      const fechaInicio = new Date(fecha);
-      const fechaFin = new Date(fecha);
-      fechaFin.setDate(fechaFin.getDate() + 1);
-      filtro.fechaPerdida = { $gte: fechaInicio, $lt: fechaFin };
+    if (req.query.especie) {
+      filtro.especie = req.query.especie;
+    }
+    if (req.query.ciudad) {
+      filtro.ciudad = new RegExp(req.query.ciudad, 'i');
+    }
+    if (req.query.estado) {
+      filtro.estado = req.query.estado; // respeta filtro específico si viene
     }
 
-    const limit = 10;
-    const skip = (parseInt(page) - 1) * limit;
-
     const mascotas = await Mascota.find(filtro)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+      .populate('propietarioId', 'nombre')
+      .sort({ createdAt: -1 });
 
     res.status(200).json(mascotas);
   } catch (err) {
