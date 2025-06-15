@@ -77,6 +77,30 @@ const slides = [
     subtitle: 'Dale un hogar lleno de amor a una mascota hoy mismo',
     link: '/contact',
   },
+  {
+    image: new URL('@/assets/slider4.jpg', import.meta.url).href,
+    title: '¡Cuidá a tu mascota!',
+    subtitle: 'Consejos y recursos para el bienestar de tus peludos',
+    link: '/contact',
+  },
+  {
+    image: new URL('@/assets/slider5.jpg', import.meta.url).href,
+    title: '¡Unidos por los animales!',
+    subtitle: 'Juntos hacemos la diferencia en la vida de las mascotas',
+    link: '/contact',
+  },
+  {
+    image: new URL('@/assets/slider6.jpg', import.meta.url).href,
+    title: '¡Encontrá tu compañero ideal!',
+    subtitle: 'Explorá nuestra comunidad de mascotas en adopción',
+    link: '/contact',
+  },
+  {
+    image: new URL('@/assets/slider7.jpg', import.meta.url).href,
+    title: '¡Hacemos magia por los animales!',
+    subtitle: 'Unidos por un mundo mejor para nuestras mascotas',
+    link: '/contact',
+  },
 ]
 </script>
 

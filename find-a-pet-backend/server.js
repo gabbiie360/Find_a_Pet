@@ -8,6 +8,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const mascotaRoutes = require('./routes/mascotaRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const locationRoutes = require('./routes/locationRoutes');
+const contactRoutes = require('./routes/contactRoutes');
 
 
 
@@ -26,6 +27,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/mascotas', mascotaRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/locations', locationRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Conexión a MongoDB
 mongoose.connect(process.env.MONGO_URI, {

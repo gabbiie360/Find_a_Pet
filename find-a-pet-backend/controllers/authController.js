@@ -20,20 +20,24 @@ const forgotPassword = async (req, res) => {
   const resetLink = `http://localhost:5173/reset-password/${token}`;
 
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_FROM,
-      pass: process.env.EMAIL_PASS
-    }
-  });
+  host: 'mail.spacemail.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.EMAIL_FROM,
+    pass: process.env.EMAIL_PASS  
+  }
+});
+
 
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to: user.email,
-    subject: 'Restablecer contraseña',
+    subject: 'Restablecimiento de contraseña',
     html: `<p>Hola ${user.nombre},</p>
-           <p>Haz clic aquí para cambiar tu contraseña:</p>
-           <a href="${resetLink}">${resetLink}</a>`
+           <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
+           <a href="${resetLink}">${resetLink}</a>
+           <p>Si no solicitaste este cambio, ignora este mensaje.</p>`
   };
 
   try {
