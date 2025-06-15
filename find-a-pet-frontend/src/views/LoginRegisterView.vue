@@ -2,18 +2,20 @@
   <div class="auth-body">
     <div class="flipper-container">
       <div class="card-flipper" :class="{ 'is-flipped': showRegister }">
-        
+
         <!-- LOGIN -->
         <div class="card-face card-face-front">
           <div class="auth-container">
             <div class="auth-header">
-              <img src="@/assets/logo.png" alt="Find a Pet Logo" class="logo">
+              <img src="@/assets/logo.png" alt="Find a Pet Logo" class="logo" />
               <h2>¡Bienvenido!</h2>
               <p>Por favor ingresa tus datos para iniciar sesión.</p>
             </div>
 
             <form class="auth-form" @submit.prevent="handleLogin">
-              <div v-if="loginError" class="error-message">{{ loginError }}</div>
+              <div v-if="loginError" class="form-group">
+                <div class="error-message">{{ loginError }}</div>
+              </div>
 
               <div class="form-group">
                 <label>Correo</label>
@@ -25,14 +27,23 @@
                 <input type="password" v-model="loginForm.password" required />
               </div>
 
+              <div class="form-options">
+                <RouterLink to="/forgot-password" class="forgot-link">
+                  ¿Olvidaste tu contraseña?
+                </RouterLink>
+              </div>
+
               <button type="submit" class="btn-primary" :disabled="loading">
-                <span v-if="loading && !showRegister">Iniciando Sesión...</span>
+                <span v-if="loading && !showRegister">Iniciando...</span>
                 <span v-else>Iniciar Sesión</span>
               </button>
             </form>
 
             <div class="switch-link">
-              <p>¿No tienes una cuenta? <a href="#" @click.prevent="toggleCard">¡Resitrate, es gratis!</a></p>
+              <p>
+                ¿No tienes una cuenta?
+                <a href="#" @click.prevent="toggleCard">¡Regístrate, es gratis!</a>
+              </p>
             </div>
           </div>
         </div>
@@ -41,14 +52,18 @@
         <div class="card-face card-face-back">
           <div class="auth-container">
             <div class="auth-header">
-              <img src="@/assets/logo.png" alt="Find a Pet Logo" class="logo">
+              <img src="@/assets/logo.png" alt="Find a Pet Logo" class="logo" />
               <h2>Crea tu Cuenta</h2>
-              <p>¡Unete a nuestra comunidad y encuentra a tu mascota!</p>
+              <p>¡Únete a nuestra comunidad y encuentra a tu mascota!</p>
             </div>
 
             <form class="auth-form" @submit.prevent="handleRegister">
-              <div v-if="registerSuccess" class="success-message">{{ registerSuccess }}</div>
-              <div v-if="registerError" class="error-message">{{ registerError }}</div>
+              <div v-if="registerSuccess" class="success-message">
+                {{ registerSuccess }}
+              </div>
+              <div v-if="registerError" class="error-message">
+                {{ registerError }}
+              </div>
 
               <div class="form-group">
                 <label>Nombre Completo</label>
@@ -61,12 +76,12 @@
               </div>
 
               <div class="form-group">
-                <label>Numero de Telefono</label>
+                <label>Número de Teléfono</label>
                 <input type="tel" v-model="registerForm.telefono" required />
               </div>
 
               <div class="form-group">
-                <label>Pais</label>
+                <label>País</label>
                 <select v-model="registerForm.pais" required>
                   <option value="">Selecciona</option>
                   <option value="Honduras">Honduras</option>
@@ -74,10 +89,14 @@
               </div>
 
               <div class="form-group">
-                <label>Departmento</label>
-                <select v-model="registerForm.departamento" required @change="loadCiudades">
+                <label>Departamento</label>
+                <select v-model="registerForm.departamento" required>
                   <option value="">Selecciona</option>
-                  <option v-for="(ciudades, depto) in departamentos" :key="depto" :value="depto">
+                  <option
+                    v-for="(ciudades, depto) in departamentos"
+                    :key="depto"
+                    :value="depto"
+                  >
                     {{ depto }}
                   </option>
                 </select>
@@ -87,7 +106,9 @@
                 <label>Ciudad</label>
                 <select v-model="registerForm.ciudad" required>
                   <option value="">Selecciona</option>
-                  <option v-for="c in ciudadesDisponibles" :key="c" :value="c">{{ c }}</option>
+                  <option v-for="c in ciudadesDisponibles" :key="c" :value="c">
+                    {{ c }}
+                  </option>
                 </select>
               </div>
 
@@ -103,7 +124,10 @@
             </form>
 
             <div class="switch-link">
-              <p>¿Ya tienes una cuenta? <a href="#" @click.prevent="toggleCard">Inicia Sesión</a></p>
+              <p>
+                ¿Ya tienes una cuenta?
+                <a href="#" @click.prevent="toggleCard">Inicia Sesión</a>
+              </p>
             </div>
           </div>
         </div>
@@ -114,8 +138,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import axios from 'axios';
 import AuthService from '@/services/authService';
 import { authStore } from '@/store/authStore';
 
@@ -138,9 +163,6 @@ const registerForm = reactive({
 const registerError = ref('');
 const registerSuccess = ref('');
 
-import { onMounted } from 'vue';
-import axios from 'axios'; // Asegúrate de tener axios instalado
-
 const departamentos = ref({});
 const ciudadesDisponibles = computed(() => {
   return departamentos.value[registerForm.departamento] || [];
@@ -155,10 +177,7 @@ const loadDepartmentsFromDB = async () => {
   }
 };
 
-
-
 onMounted(loadDepartmentsFromDB);
-
 
 const toggleCard = () => {
   showRegister.value = !showRegister.value;
@@ -337,5 +356,21 @@ const handleRegister = async () => {
   .auth-container {
     padding: 25px 20px;
   }
+}
+
+.form-options {
+  text-align: right;
+  margin-bottom: 1rem;
+}
+
+.forgot-link {
+  color: #9B88C8;
+  font-weight: 500;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
 }
 </style>

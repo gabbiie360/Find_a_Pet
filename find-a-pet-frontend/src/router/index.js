@@ -6,6 +6,8 @@ import LoginRegisterView from '@/views/LoginRegisterView.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import PetPublicView from '@/views/PetPublicView.vue';
 import ReportsView from '@/views/ReportsView.vue';
+import ForgotPasswordView from '@/views/ForgotPasswordView.vue';
+import ResetPasswordView from '@/views/ResetPasswordView.vue';
 
 
 const routes = [
@@ -15,7 +17,9 @@ const routes = [
   { path: '/loginregister', name: 'LoginRegister', component: LoginRegisterView },
   { path: '/profileview', name: 'ProfileView', component: ProfileView },
   { path: '/pet/:id', name: 'pet-public', component: PetPublicView},
-  { path: '/reports', name: 'ReportsView', component: ReportsView }
+  { path: '/reports', name: 'ReportsView', component: ReportsView },
+  { path: '/forgot-password', name: 'ForgotPassword', component: ForgotPasswordView },
+  { path: '/reset-password/:token', name: 'ResetPassword', component: ResetPasswordView }
 
 ]
 
@@ -24,22 +28,18 @@ const router = createRouter({
   routes,
 })
 
-// --- 3. CREA UN "GUARDIA DE NAVEGACIÓN" GLOBAL ---
-// Este código se ejecuta ANTES de cada cambio de ruta.
 router.beforeEach((to, from, next) => {
-  // Verificamos si la ruta a la que se intenta ir (to) requiere autenticación
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
-  // Obtenemos al usuario de localStorage para ver si hay una sesión
   const user = JSON.parse(localStorage.getItem('user'));
 
-  // Si la ruta requiere autenticación y NO hay usuario logueado...
   if (requiresAuth && !user) {
-    // ...redirigimos al usuario a la página de login.
-    next({ name: 'login' });
+    next({ name: 'LoginRegister' });
   } else {
-    // Si no requiere auth, o si sí la requiere y el usuario está logueado, lo dejamos pasar.
     next();
   }
 });
+
+
+
 
 export default router
