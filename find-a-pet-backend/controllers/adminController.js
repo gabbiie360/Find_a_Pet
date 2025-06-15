@@ -1,6 +1,8 @@
 // backend/controllers/adminController.js
 const User = require('../models/User');
 const Mascota = require('../models/Mascota');
+const Report = require('../models/Report'); // Importamos el modelo de Reportes
+const { subDays, format } = require('date-fns');
 
 // Obtener datos agregados para el dashboard
 exports.getDashboardStats = async (req, res) => {
@@ -8,9 +10,25 @@ exports.getDashboardStats = async (req, res) => {
     const totalUsers = await User.countDocuments();
     const totalMascotas = await Mascota.countDocuments();
     const mascotasPerdidas = await Mascota.countDocuments({ estado: 'perdida' });
+    const totalReportes = await Report.countDocuments();
+
+    const hoy = new Date();
+    const hace7Dias = subDays(hoy, 7);
+
+    const nuevosUsuarios = await User.aggregate([
+        { $match: { fechaRegistro: { $gte: hace7Dias } } },
+        { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$fechaRegistro" } }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+    ]);
+
+    const nuevasMascotas = await Mascota.aggregate([
+        { $match: { createdAt: { $gte: hace7Dias } } },
+        { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+    ]);
     
     // Aquí podrías añadir más estadísticas complejas en el futuro
-    res.json({ totalUsers, totalMascotas, mascotasPerdidas });
+    res.json({ totalUsers, totalMascotas, mascotasPerdidas, totalReportes, nuevosUsuarios, nuevasMascotas });
   } catch (err) { res.status(500).json({ msg: 'Error del servidor' }); }
 };
 

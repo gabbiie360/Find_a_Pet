@@ -10,24 +10,27 @@
     </aside>
 
     <main class="main-content">
-      <div v-if="loading">Cargando...</div>
+      <div v-if="loading" class="loading-message">Cargando datos...</div>
+      
       <div v-else>
         <!-- Vista de Estadísticas -->
-        <div v-if="currentView === 'stats'" class="stats-view">
+        <div v-show="currentView === 'stats'" class="stats-view">
           <h1>Estadísticas Generales</h1>
           <div class="stats-grid">
-            <div class="stat-card"><h2>{{ stats.totalUsers }}</h2><p>Usuarios Totales</p></div>
-            <div class="stat-card"><h2>{{ stats.totalMascotas }}</h2><p>Mascotas Registradas</p></div>
-            <div class="stat-card"><h2>{{ stats.mascotasPerdidas }}</h2><p>Mascotas Perdidas</p></div>
+            <div class="stat-card"><h2>{{ stats.totalUsers || 0 }}</h2><p>Usuarios Totales</p></div>
+            <div class="stat-card"><h2>{{ stats.totalMascotas || 0 }}</h2><p>Mascotas Registradas</p></div>
+            <!-- CORRECCIÓN #1: Usar stats.totalReportes -->
+            <div class="stat-card"><h2>{{ stats.totalReportes || 0 }}</h2><p>Reportes Creados</p></div>
+            <div class="stat-card lost"><h2>{{ stats.mascotasPerdidas || 0 }}</h2><p>Mascotas Perdidas Ahora</p></div>
           </div>
-          <div class="chart-placeholder">
-            <h3>Gráfico de Actividad (Placeholder)</h3>
-            <p>Aquí iría una librería de gráficos como Chart.js</p>
+          <div class="chart-container">
+            <h3>Actividad de los Últimos 7 Días</h3>
+            <Line v-if="!loading" :data="chartData" :options="chartOptions" />
           </div>
         </div>
 
         <!-- Vista de Usuarios -->
-        <div v-if="currentView === 'users'" class="table-view">
+        <div v-show="currentView === 'users'" class="table-view">
           <h1>Gestionar Usuarios</h1>
           <table>
             <thead>
@@ -38,16 +41,14 @@
                 <td>{{ user.nombre }}</td>
                 <td>{{ user.email }}</td>
                 <td>{{ user.rol }}</td>
-                <td>
-                  <button @click="deleteUser(user._id)" class="btn-delete">Eliminar</button>
-                </td>
+                <td><button @click="deleteUser(user._id)" class="btn-delete">Eliminar</button></td>
               </tr>
             </tbody>
           </table>
         </div>
 
         <!-- Vista de Mascotas -->
-        <div v-if="currentView === 'pets'" class="table-view">
+        <div v-show="currentView === 'pets'" class="table-view">
           <h1>Gestionar Mascotas</h1>
           <table>
              <thead>
@@ -59,9 +60,7 @@
                 <td>{{ pet.especie }}</td>
                 <td><span class="status-tag" :class="pet.estado">{{ pet.estado }}</span></td>
                 <td>{{ pet.propietarioId?.nombre || 'N/A' }}</td>
-                <td>
-                  <button @click="deletePet(pet._id)" class="btn-delete">Eliminar</button>
-                </td>
+                <td><button @click="deletePet(pet._id)" class="btn-delete">Eliminar</button></td>
               </tr>
             </tbody>
           </table>
@@ -72,12 +71,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import AdminService from '@/services/adminService';
+import { Line } from 'vue-chartjs';
+import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement } from 'chart.js';
+import { format, subDays, eachDayOfInterval } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+ChartJS.register(Title, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
 
 const currentView = ref('stats');
 const loading = ref(true);
-const stats = ref({});
+const stats = ref({
+  nuevosUsuarios: [],
+  nuevasMascotas: []
+});
 const users = ref([]);
 const pets = ref([]);
 
@@ -98,6 +106,65 @@ onMounted(async () => {
   }
 });
 
+// --- CORRECCIÓN #2: Lógica del Gráfico más Robusta ---
+const chartData = computed(() => {
+    const hoy = new Date();
+    // Genera un rango de los últimos 7 días, terminando en hoy.
+    const diasDelIntervalo = eachDayOfInterval({ start: subDays(hoy, 6), end: hoy });
+
+    // Crea las etiquetas para el eje X del gráfico (ej: "10 jun", "11 jun")
+    const labels = diasDelIntervalo.map(dia => format(dia, 'd MMM', { locale: es }));
+
+    // Asegura que los datos del backend sean un array, incluso si vienen nulos o undefined
+    const datosNuevosUsuarios = Array.isArray(stats.value.nuevosUsuarios) ? stats.value.nuevosUsuarios : [];
+    const datosNuevasMascotas = Array.isArray(stats.value.nuevasMascotas) ? stats.value.nuevasMascotas : [];
+    
+    // Función auxiliar para buscar el recuento de un día específico
+    const getCountForDay = (dataArray, day) => {
+        const diaFormato = format(day, 'yyyy-MM-dd');
+        const match = dataArray.find(d => d._id === diaFormato);
+        return match ? match.count : 0;
+    };
+
+    // Mapea los datos de usuarios y mascotas a los 7 días del intervalo
+    const dataUsuarios = diasDelIntervalo.map(dia => getCountForDay(datosNuevosUsuarios, dia));
+    const dataMascotas = diasDelIntervalo.map(dia => getCountForDay(datosNuevasMascotas, dia));
+
+    return {
+        labels,
+        datasets: [
+            {
+                label: 'Nuevos Usuarios',
+                backgroundColor: '#b098d6',
+                borderColor: '#b098d6',
+                data: dataUsuarios,
+                tension: 0.3
+            },
+            {
+                label: 'Nuevas Mascotas',
+                backgroundColor: '#f7de8e',
+                borderColor: '#f7de8e',
+                data: dataMascotas,
+                tension: 0.3
+            }
+        ]
+    };
+});
+
+const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+        y: {
+            beginAtZero: true,
+            ticks: {
+                // Asegura que el eje Y solo muestre números enteros
+                stepSize: 1
+            }
+        }
+    }
+};
+
 const deleteUser = async (userId) => {
   if (confirm('¿Seguro que quieres eliminar este usuario y todas sus mascotas?')) {
     await AdminService.deleteUser(userId);
@@ -114,21 +181,28 @@ const deletePet = async (petId) => {
 </script>
 
 <style scoped>
-.admin-body { display: flex; min-height: 100vh; background-color: #f8f9fa; }
-.sidebar { width: 250px; background-color: #343a40; color: white; padding-top: 20px; flex-shrink: 0; }
+/* Tus estilos no necesitan cambios, son correctos */
+.admin-body { display: flex; min-height: 100vh; background-color: #f8f9fa; font-family: 'Poppins', sans-serif; }
+.sidebar { width: 250px; background-color: #343a40; color: white; padding-top: 20px; flex-shrink: 0; position: fixed; height: 100%; }
+.main-content { margin-left: 250px; flex-grow: 1; padding: 40px; }
 .sidebar-header { font-size: 1.5rem; text-align: center; margin-bottom: 30px; font-weight: 600; }
-.sidebar-nav a { display: block; color: #adb5bd; padding: 15px 20px; text-decoration: none; transition: all 0.2s; }
-.sidebar-nav a:hover, .sidebar-nav a.active { background-color: #495057; color: white; }
-.main-content { flex-grow: 1; padding: 40px; }
-.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
-.stat-card { background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-.stat-card h2 { font-size: 2.5rem; margin: 0; }
-.chart-placeholder { background: white; padding: 20px; border-radius: 8px; text-align: center; border: 2px dashed #ddd; }
-table { width: 100%; border-collapse: collapse; background: white; }
-th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
-th { background-color: #f2f2f2; }
-.btn-delete { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
-.status-tag { padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; }
+.sidebar-nav a { display: block; color: #adb5bd; padding: 15px 20px; text-decoration: none; transition: all 0.2s; border-left: 3px solid transparent; }
+.sidebar-nav a:hover { background-color: #495057; color: white; }
+.sidebar-nav a.active { background-color: #007bff; color: white; border-left-color: #f7de8e; }
+.loading-message { font-size: 1.2rem; text-align: center; margin-top: 50px; }
+.stats-view h1, .table-view h1 { margin-bottom: 20px; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin: 20px 0 40px 0; }
+.stat-card { background: white; padding: 25px; border-radius: 8px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+.stat-card h2 { font-size: 3rem; margin: 0; color: #b098d6; }
+.stat-card.lost h2 { color: #dc3545; }
+.stat-card p { margin: 5px 0 0 0; color: #6c757d; font-weight: 500; }
+.chart-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); height: 400px; }
+.table-view { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 15px; border-bottom: 1px solid #dee2e6; text-align: left; vertical-align: middle; }
+th { background-color: #e9ecef; font-weight: 600; }
+.btn-delete { background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; }
+.status-tag { padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
 .status-tag.perdida { background: #ffebee; color: #c62828; }
 .status-tag.en-casa { background: #e8f5e9; color: #2e7d32; }
 </style>
