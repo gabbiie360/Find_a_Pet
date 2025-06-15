@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const reportSchema = new mongoose.Schema({
   tipo: { 
     type: String,
-    enum: ['perdido', 'encontrado', 'adopcion'],
+    enum: ['perdida', 'encontrada', 'adopcion'],
     required: true
   },
   descripcion: {
@@ -26,7 +26,24 @@ const reportSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+   fechaPerdida: { type: Date },
+   
+   ultimaUbicacion: {
+  type: {
+    type: String,
+    enum: ['Point'],
+    default: 'Point'
+  },
+  coordinates: {
+    type: [Number], // [longitud, latitud]
+    default: undefined
+  },
+  texto: {
+    type: String
   }
+}
+
 });
 
 module.exports = mongoose.model('Report', reportSchema);
