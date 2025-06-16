@@ -143,23 +143,39 @@ const getUserProfile = async (req, res) => {
   }
 };
 
-// ACTUALIZAR PERFIL
+// --- ACTUALIZAR PERFIL (COMPLETAMENTE CORREGIDO) ---
 const updateUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
-
-    const { nombre, telefono, ciudad, fotoPerfil } = req.body;
-    user.nombre = nombre || user.nombre;
-    user.telefono = telefono || user.telefono;
-    user.ciudad = ciudad || user.ciudad;
-    user.fotoPerfil = fotoPerfil || user.fotoPerfil;
+    // Campos que permitimos actualizar desde el formulario
+    const { nombre, telefono, direccionDetallada, fotoPerfil } = req.body;
     
-    const updatedUser = await user.save();
-    res.status(200).json({ msg: 'Perfil actualizado', user: updatedUser });
+    const updateData = {};
+
+    // Construimos el objeto de actualización solo con los campos que se enviaron
+    if (nombre) updateData.nombre = nombre;
+    if (telefono) updateData.telefono = telefono;
+    if (direccionDetallada) updateData.direccionDetallada = direccionDetallada;
+    if (fotoPerfil) updateData.fotoPerfil = fotoPerfil;
+    
+    // Actualizamos el documento en la base de datos y pedimos que nos devuelva la nueva versión
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!updatedUser) {
+      return res.status(404).json({ msg: 'Usuario no encontrado' });
+    }
+
+    res.status(200).json({ 
+      msg: 'Perfil actualizado exitosamente', 
+      user: updatedUser 
+    });
+
   } catch (err) {
     console.error('ERROR ACTUALIZANDO PERFIL:', err);
-    res.status(500).json({ msg: 'Error del servidor' });
+    res.status(500).json({ msg: 'Error del servidor al actualizar el perfil' });
   }
 };
 

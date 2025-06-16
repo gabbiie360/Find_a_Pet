@@ -1,18 +1,15 @@
 <template>
   <div class="profile-body">
-    <!-- 1. Muestra un mensaje mientras se cargan los datos -->
+    <!-- Estados de Carga y Error -->
     <div v-if="loading" class="feedback-container">
       <h2>Cargando tu perfil...</h2>
-      <!-- Podrías poner un spinner de carga aquí si quieres -->
     </div>
-
-    <!-- 2. Muestra un mensaje de error si la carga falla -->
     <div v-else-if="error" class="feedback-container error">
       <h2>Oops, algo salió mal</h2>
       <p>{{ error }}</p>
     </div>
-
-    <!-- 3. Solo muestra el contenido principal CUANDO 'user' tiene datos -->
+    
+    <!-- Contenido Principal -->
     <div v-else-if="user" class="profile-layout">
       <UserSidebar
         :user="user"
@@ -23,16 +20,18 @@
         @logout="logout"
       />
       <main class="main-content">
+        <!-- Sección de Mascotas con todos los eventos conectados -->
         <MyPetsSection
           :mascotas="mascotas"
           :placeholderImage="placeholderImage"
           @openPetModal="openPetModal"
+          @deletePet="handleDeletePet"
           @openReportModal="openReportModal"
           @openQrModal="openQrModal"
           @openImageViewer="openImageViewer"
-          @openReportDetailsModal="openReportDetailsModal"
+          @openPetDetailsModal="openPetDetailsModal"
         />
-
+        <!-- Sección de Reportes -->
         <MyReportsSection
           :activeReports="activeReports"
           :placeholderImage="placeholderImage"
@@ -47,19 +46,18 @@
       </main>
     </div>
 
-    <!-- Los modales se quedan fuera del renderizado condicional, ya que se activan con v-if -->
+    <!-- ========= INICIO DE SECCIÓN DE MODALES ========= -->
     <PetModal
       v-if="showPetModal"
       :isEditing="isEditing"
       :pet="petForm"
-      :imagePreview="imagePreviewUrl"
+      :imagePreviewUrl="imagePreviewUrl"
       :isSubmitting="isSubmitting"
       :errorMessage="modalError"
       @save="handleSavePet"
       @cancel="closePetModal"
-      @image-selected="handleImageSelection"
+      @imageSelected="handleImageSelection"
     />
-
     <ReportModal
       v-if="showReportModal"
       :pet="selectedPet"
@@ -69,20 +67,17 @@
       @submit="handleReportLost"
       @cancel="closeReportModal"
     />
-
     <ReportDetailsModal
       v-if="showReportDetailsModal"
       :report="selectedReport"
       @close="closeReportDetailsModal"
     />
-
     <EditReportModal
       v-if="showEditReportModal"
       :report="editingReport"
       @save="handleUpdateReport"
       @cancel="closeEditReportModal"
     />
-
     <GenericReportModal
       v-if="showGenericReportModal"
       :report="genericReport"
@@ -91,13 +86,25 @@
       @cancel="closeGenericReportModal"
       @image-selected="handleGenericImageSelection"
     />
-
+    <PetDetailsModal 
+      v-if="showPetDetailsModal"
+      :pet="selectedPetDetails"
+      @close="closePetDetailsModal"
+    />
+    <ProfileModal
+      v-if="showProfileModal"
+      :profile="profileForm"
+      :imagePreviewUrl="profileImagePreviewUrl"
+      :errorMessage="modalError"
+      @save="handleUpdateProfile"
+      @cancel="closeProfileModal"
+      @imageSelected="handleProfileImageSelection"
+    />
     <QrModal
       v-if="showQrModal"
       :qrCodeUrl="qrCodeUrl"
       @close="closeQrModal"
     />
-
     <ImageViewerModal
       v-if="showImageViewer"
       :imageUrl="imageToView"
@@ -106,234 +113,83 @@
   </div>
 </template>
 
-
-
-
 <script setup>
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import AuthService from '@/services/authService';
+import PetService from '@/services/petService';
+import ReportService from '@/services/reportService';
+import { authStore } from '@/store/authStore';
+import placeholderImage from '@/assets/placeholder-pet.png';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 
-import { ref, reactive, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import AuthService from '@/services/authService'
-import PetService from '@/services/petService'
-import ReportService from '@/services/reportService'
-import { authStore } from '@/store/authStore'
-import placeholderImage from '@/assets/placeholder-pet.png'
-import Swal from 'sweetalert2'
-import 'sweetalert2/dist/sweetalert2.min.css'
+// Importación de todos los componentes
+import UserSidebar from '@/components/profileComponents/UserSidebar.vue';
+import MyPetsSection from '@/components/profileComponents/MyPetsSection.vue';
+import MyReportsSection from '@/components/profileComponents/MyReportsSection.vue';
+import PetModal from '@/components/profileComponents/modals/PetModal.vue';
+import ReportModal from '@/components/profileComponents/modals/ReportModal.vue';
+import ReportDetailsModal from '@/components/profileComponents/modals/ReportDetailsModal.vue';
+import EditReportModal from '@/components/profileComponents/modals/EditReportModal.vue';
+import GenericReportModal from '@/components/profileComponents/modals/GenericReportModal.vue';
+import QrModal from '@/components/profileComponents/modals/QrModal.vue';
+import ImageViewerModal from '@/components/profileComponents/modals/ImageViewerModal.vue';
+import PetDetailsModal from '@/components/profileComponents/modals/PetDetailsModal.vue';
+import ProfileModal from '@/components/profileComponents/modals/ProfileModal.vue';
 
-import UserSidebar from '@/components/profileComponents/UserSidebar.vue'
-import MyPetsSection from '@/components/profileComponents/MyPetsSection.vue'
-import MyReportsSection from '@/components/profileComponents/MyReportsSection.vue'
-
-import PetModal from '@/components/profileComponents/modals/PetModal.vue'
-import ReportModal from '@/components/profileComponents/modals/ReportModal.vue'
-import ReportDetailsModal from '@/components/profileComponents/modals/ReportDetailsModal.vue'
-import EditReportModal from '@/components/profileComponents/modals/EditReportModal.vue'
-import GenericReportModal from '@/components/profileComponents/modals/GenericReportModal.vue'
-import QrModal from '@/components/profileComponents/modals/QrModal.vue'
-import ImageViewerModal from '@/components/profileComponents/modals/ImageViewerModal.vue'
-
-
-
+// Definición de todas las variables reactivas
 const router = useRouter();
 const user = ref(null);
 const mascotas = ref([]);
+const myReports = ref([]);
 const loading = ref(true);
 const error = ref('');
 const isSubmitting = ref(false);
 const modalError = ref('');
 
+// Controladores de visibilidad de modales
 const showPetModal = ref(false);
 const showReportModal = ref(false);
 const showProfileModal = ref(false);
 const showQrModal = ref(false);
 const qrCodeUrl = ref('');
 const isEditing = ref(false);
-const selectedPet = ref(null);
 const showImageViewer = ref(false);
 const imageToView = ref('');
+const showReportDetailsModal = ref(false);
+const showEditReportModal = ref(false);
+const showGenericReportModal = ref(false);
+const showPetDetailsModal = ref(false);
 
+// Modelos de datos para formularios
 const petForm = reactive({ _id: null, nombre: '', especie: '', raza: '', descripcion: '', fotos: [] });
 const reportForm = reactive({ fechaPerdida: '', ubicacionTexto: '', recompensa: 0 });
-const profileForm = reactive({ nombre: '', telefono: '', ciudad: '', fotoPerfil: '' });
+const profileForm = reactive({ nombre: '', email: '', telefono: '', direccionDetallada: '', fotoPerfil: '' });
+const genericReport = reactive({ tipo: '', nombre: '', especie: '', raza: '', ciudad: '', descripcion: '', recompensa: 0, imagen: null, fechaPerdida: '' });
 
+// Variables para manejar datos seleccionados
+const selectedPet = ref(null);
+const selectedReport = ref({});
+const editingReport = ref(null);
+const selectedPetDetails = ref(null);
+
+// Variables para manejo de archivos
 const imageFile = ref(null);
 const imagePreviewUrl = ref('');
 const profileImageFile = ref(null);
 const profileImagePreviewUrl = ref('');
 
-const showReportDetailsModal = ref(false);
-const selectedReport = ref({});
-
-const openReportDetailsModal = (reporte) => {
-  selectedReport.value = { ...reporte };
-  showReportDetailsModal.value = true;
-};
-
-const closeReportDetailsModal = () => {
-  showReportDetailsModal.value = false;
-  selectedReport.value = {};
-};
-
-
-const myReports = ref([]);
-
-const fetchMyReports = async () => {
-  try {
-    const res = await ReportService.getMyReports();
-    myReports.value = res.data || [];
-  } catch (err) {
-    console.error("Error al cargar reportes:", err);
-  }
-};
-
-const handleUpdateReport = async () => {
-  try {
-    await ReportService.updateReport(editingReport.value._id, editingReport.value);
-    await fetchMyReports();
-    closeEditReportModal();
-    Swal.fire('Éxito', 'Reporte actualizado', 'success');
-  } catch (err) {
-    console.error('Error actualizando reporte:', err);
-    Swal.fire('Error', 'No se pudo actualizar el reporte.', 'error');
-  }
-};
-
-
-const showGenericReportModal = ref(false);
-const genericReport = reactive({
-  tipo: '',
-  nombre: '',
-  especie: '',
-  raza: '',
-  ciudad: '',
-  descripcion: '',
-  recompensa: 0,
-  imagen: null,
-  fechaPerdida: '',
-});
-
-
-const openGenericReportModal = () => {
-  showGenericReportModal.value = true;
-};
-
-const closeGenericReportModal = () => {
-  showGenericReportModal.value = false;
-  Object.assign(genericReport, {
-    tipo: '', ciudad: '', descripcion: '', imagen: null
-  });
-};
-
-const handleGenericImageSelection = (e) => {
-  const file = e.target.files[0];
-  if (file) genericReport.imagen = file;
-};
-
-const handleGenericReportSubmit = async () => {
-  isSubmitting.value = true;
-  try {
-    const formData = new FormData();
-    formData.append('tipo', genericReport.tipo);
-    formData.append('nombre', genericReport.nombre);
-    formData.append('especie', genericReport.especie);
-    formData.append('raza', genericReport.raza);
-    formData.append('descripcion', genericReport.descripcion);
-    formData.append('ciudad', genericReport.ciudad);
-    formData.append('recompensa', genericReport.recompensa || 0);
-    if (genericReport.imagen) {
-      formData.append('imagen', genericReport.imagen);
-    }
-    if (genericReport.tipo === 'perdida' && genericReport.fechaPerdida) {
-  formData.append('fechaPerdida', genericReport.fechaPerdida);
-}
-
-    if (genericReport.ultimaUbicacionTexto) {
-  formData.append('ultimaUbicacionTexto', genericReport.ultimaUbicacionTexto);
-}
-if (genericReport.latitud && genericReport.longitud) {
-  formData.append('latitud', genericReport.latitud);
-  formData.append('longitud', genericReport.longitud);
-}
-
-
-    await ReportService.createReportWithImage(formData);
-
-    await fetchMisMascotas(); // refrescar mascotas
-    await fetchMyReports();   // 🔄 recargar los reportes del usuario
-
-    closeGenericReportModal();
-    Swal.fire('Éxito', '¡Reporte creado con éxito!', 'success');
-
-  } catch (err) {
-    console.error('Error al crear reporte:', err);
-    Swal.fire('Error', 'No se pudo crear el reporte.', 'error');
-  } finally {
-    isSubmitting.value = false;
-  }
-};
-
-const editingReport = ref(null);
-const showEditReportModal = ref(false);
-
-const openEditReportModal = (reporte) => {
-  editingReport.value = {
-    _id: reporte._id,
-    nombre: reporte.nombre || '',
-    ciudad: reporte.ciudad || '',
-    ultimaUbicacion: {
-      texto: reporte.ultimaUbicacion?.texto || '',
-      coordinates: reporte.ultimaUbicacion?.coordinates || [0, 0]
-    },
-    descripcion: reporte.descripcion || '',
-    especie: reporte.especie || '',
-    raza: reporte.raza || '',
-    recompensa: reporte.recompensa || 0
-  };
-
-  showEditReportModal.value = true;
-};
-
-
-
-const closeEditReportModal = () => {
-  showEditReportModal.value = false;
-  editingReport.value = null;
-};
-
-
-const deleteReport = async (reportId) => {
-  const confirm = await Swal.fire({
-    title: '¿Eliminar reporte?',
-    text: 'Esta acción no se puede deshacer.',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'Sí, eliminar',
-    cancelButtonText: 'Cancelar'
-  });
-
-  if (confirm.isConfirmed) {
-    try {
-      await ReportService.deleteReport(reportId);
-      await fetchMyReports(); // recargar
-      Swal.fire('Eliminado', 'El reporte fue eliminado con éxito.', 'success');
-    } catch (err) {
-      console.error(err);
-      Swal.fire('Error', 'No se pudo eliminar el reporte.', 'error');
-    }
-  }
-};
-
-
+// --- Lógica de Carga Inicial ---
 onMounted(async () => {
   try {
     const profileResponse = await AuthService.getProfileData();
     user.value = profileResponse.data.user;
-    await fetchMisMascotas();
-    await fetchMyReports(); 
+    await Promise.all([fetchMisMascotas(), fetchMyReports()]);
   } catch (err) {
     error.value = 'No se pudo cargar tu perfil. Tu sesión puede haber expirado.';
     authStore.logout();
+    router.push('/loginregister');
   } finally {
     loading.value = false;
   }
@@ -346,27 +202,133 @@ const fetchMisMascotas = async () => {
   } catch (err) { console.error("Error cargando mascotas:", err); }
 };
 
-const handleSavePet = async () => {
+const fetchMyReports = async () => {
+  try {
+    const res = await ReportService.getMyReports();
+    myReports.value = res.data || [];
+  } catch (err) { console.error("Error al cargar reportes:", err); }
+};
+
+// --- Lógica de Mascotas (CRUD) ---
+const openPetModal = (mascota = null) => {
+  isEditing.value = !!mascota;
+  // Limpiamos y preparamos el formulario reactivo para el modal
+  Object.assign(petForm, mascota ? mascota : { _id: null, nombre: '', especie: '', raza: '', descripcion: '' });
+  imagePreviewUrl.value = mascota?.fotos?.[0] || '';
+  imageFile.value = null;
+  modalError.value = '';
+  showPetModal.value = true;
+};
+const closePetModal = () => { showPetModal.value = false; };
+
+const handleSavePet = async (petDataFromModal) => {
   isSubmitting.value = true;
   modalError.value = '';
   try {
-    let petDataPayload = { ...petForm };
+    let payload = { ...petDataFromModal };
     if (imageFile.value) {
       const res = await PetService.uploadPetImage(imageFile.value);
-      petDataPayload.fotos = [res.data.secure_url];
+      payload.fotos = [res.data.secure_url];
     }
+    
     if (isEditing.value) {
-      await PetService.updatePet(petForm._id, petDataPayload);
+      await PetService.updatePet(payload._id, payload);
     } else {
-      await PetService.addPet(petDataPayload);
+      await PetService.addPet(payload);
     }
+    
     await fetchMisMascotas();
     closePetModal();
+    Swal.fire('¡Éxito!', `Mascota ${isEditing.value ? 'actualizada' : 'registrada'} correctamente.`, 'success');
   } catch (err) {
+    console.error('Error al guardar mascota:', err);
     modalError.value = 'Error al guardar. Por favor, revisa los datos.';
   } finally {
     isSubmitting.value = false;
   }
+};
+
+const handleDeletePet = async (petId) => {
+  const result = await Swal.fire({
+    title: '¿Estás seguro?',
+    text: "¡No podrás revertir esto! Se eliminarán también los reportes asociados.",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Sí, ¡elimínala!',
+    cancelButtonText: 'Cancelar'
+  });
+
+  if (result.isConfirmed) {
+    try {
+      await PetService.deletePet(petId);
+      await fetchMisMascotas();
+      await fetchMyReports();
+      Swal.fire('¡Eliminada!', 'Tu mascota ha sido eliminada.', 'success');
+    } catch (err) {
+      console.error("Error al eliminar mascota:", err);
+      Swal.fire('Error', 'No se pudo eliminar la mascota.', 'error');
+    }
+  }
+};
+
+// --- Lógica de Reportes (CRUD) ---
+const activeReports = computed(() => myReports.value.filter(r => ['perdida', 'encontrada', 'adopcion'].includes(r.tipo)));
+
+const openEditReportModal = (reporte) => {
+  const base = { _id: null, nombre: '', ciudad: '', descripcion: '', especie: '', raza: '', recompensa: 0, tipo: '', ultimaUbicacion: { texto: '', coordinates: [0, 0] } };
+  editingReport.value = { ...base, ...reporte, ultimaUbicacion: { ...base.ultimaUbicacion, ...(reporte.ultimaUbicacion || {}) } };
+  showEditReportModal.value = true;
+};
+const closeEditReportModal = () => { showEditReportModal.value = false; editingReport.value = null; };
+
+const handleUpdateReport = async (updatedReport) => {
+  if (!updatedReport) return;
+  isSubmitting.value = true;
+  try {
+    await ReportService.updateReport(updatedReport._id, updatedReport);
+    await fetchMyReports();
+    closeEditReportModal();
+    Swal.fire('Éxito', 'Reporte actualizado correctamente', 'success');
+  } catch (err) {
+    console.error('Error actualizando reporte:', err);
+    Swal.fire('Error', 'No se pudo actualizar el reporte.', 'error');
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+const deleteReport = async (reportId) => {
+  const confirm = await Swal.fire({
+    title: '¿Eliminar reporte?',
+    text: 'Esta acción no se puede deshacer.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar'
+  });
+
+  if (confirm.isConfirmed) {
+    try {
+      await ReportService.deleteReport(reportId);
+      await fetchMyReports();
+      Swal.fire('Eliminado', 'El reporte fue eliminado con éxito.', 'success');
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error', 'No se pudo eliminar el reporte.', 'error');
+    }
+  }
+};
+
+const handleMarkAsFound = async (petId) => {
+  try {
+    await PetService.markAsFound(petId);
+    await fetchMisMascotas();
+    await fetchMyReports();
+  } catch (err) { console.error("Error marcando como encontrada", err); }
 };
 
 const handleReportLost = async () => {
@@ -374,12 +336,19 @@ const handleReportLost = async () => {
     modalError.value = '';
     try {
         const reportData = {
+            mascota: selectedPet.value._id,
+            nombre: selectedPet.value.nombre,
+            especie: selectedPet.value.especie,
+            raza: selectedPet.value.raza,
+            ciudad: user.value.ciudad, // O una ciudad del formulario
+            descripcion: 'Perdido', // O una descripción del formulario
+            fotos: selectedPet.value.fotos,
+            tipo: 'perdida',
             fechaPerdida: reportForm.fechaPerdida,
             recompensa: reportForm.recompensa,
-            ultimaUbicacion: { type: 'Point', coordinates: [-88.025, 15.504] }
         };
-        await PetService.reportAsLost(selectedPet.value._id, reportData);
-        await fetchMisMascotas();
+        await ReportService.createReport(reportData); // Usar createReport genérico
+        await fetchMyReports();
         closeReportModal();
     } catch(err) {
         modalError.value = 'Error al generar el reporte.';
@@ -388,80 +357,155 @@ const handleReportLost = async () => {
     }
 };
 
-const handleMarkAsFound = async (petId) => {
-    try {
-        await PetService.markAsFound(petId);
-        await fetchMisMascotas();
-    } catch (err) { console.error("Error marcando como encontrada", err); }
-};
+// --- Lógica de Modales Genéricos y de Usuario ---
+const openGenericReportModal = () => { showGenericReportModal.value = true; };
+const closeGenericReportModal = () => { showGenericReportModal.value = false; Object.assign(genericReport, { tipo: '', nombre: '', especie: '', raza: '', ciudad: '', descripcion: '', recompensa: 0, imagen: null, fechaPerdida: '' }); };
 
-const handleUpdateProfile = async () => {
-    isSubmitting.value = true;
-    try {
-        let profileData = { ...profileForm };
-        if (profileImageFile.value) {
-            const res = await PetService.uploadPetImage(profileImageFile.value);
-            profileData.fotoPerfil = res.data.secure_url;
-        }
-        const response = await AuthService.updateProfile(profileData);
-        const updatedUser = { ...authStore.user, user: response.data.user };
-        authStore.login(updatedUser);
-        user.value = response.data.user;
-        closeProfileModal();
-    } catch (err) { console.error("Error actualizando perfil", err); }
-    finally { isSubmitting.value = false; }
-};
+const handleGenericReportSubmit = async () => {
+  isSubmitting.value = true;
+  try {
+    const formData = new FormData();
+    formData.append('nombre', genericReport.nombre);
+    formData.append('especie', genericReport.especie);
+    formData.append('raza', genericReport.raza);
+    formData.append('tipo', genericReport.tipo);
+    formData.append('descripcion', genericReport.descripcion);
+    formData.append('ciudad', genericReport.ciudad);
+    formData.append('recompensa', genericReport.recompensa || 0);
+    if (genericReport.imagen) formData.append('imagen', genericReport.imagen);
+    if (genericReport.tipo === 'perdida' && genericReport.fechaPerdida) formData.append('fechaPerdida', genericReport.fechaPerdida);
 
-const openPetModal = (mascota) => {
-  isEditing.value = !!mascota;
-  Object.assign(petForm, mascota ? { ...mascota } : { _id: null, nombre: '', especie: '', raza: '', descripcion: '', fotos: [] });
-  imagePreviewUrl.value = mascota?.fotos[0] || '';
-  showPetModal.value = true;
+    await ReportService.createReportWithImage(formData); // Necesitarás este servicio
+    await fetchMyReports();
+    closeGenericReportModal();
+    Swal.fire('Éxito', '¡Reporte creado con éxito!', 'success');
+  } catch (err) {
+    console.error('Error al crear reporte:', err);
+    Swal.fire('Error', 'No se pudo crear el reporte.', 'error');
+  } finally {
+    isSubmitting.value = false;
+  }
 };
-const closePetModal = () => { showPetModal.value = false; modalError.value = ''; imageFile.value = null; imagePreviewUrl.value = ''; };
+const handleGenericImageSelection = (e) => { const file = e.target.files[0]; if (file) genericReport.imagen = file; };
 
-const openReportModal = (mascota) => { selectedPet.value = mascota; showReportModal.value = true; };
-const closeReportModal = () => { showReportModal.value = false; modalError.value = ''; };
 
-const openProfileModal = (event) => {
-    event.stopPropagation();
-    Object.assign(profileForm, user.value);
-    profileImagePreviewUrl.value = user.value.fotoPerfil || '';
-    showProfileModal.value = true;
+// --- Lógica de Modales de Visualización ---
+const openPetDetailsModal = (mascota) => {
+  selectedPetDetails.value = mascota;
+  showPetDetailsModal.value = true;
 };
-const closeProfileModal = () => { showProfileModal.value = false; profileImageFile.value = null; profileImagePreviewUrl.value = ''; };
+const closePetDetailsModal = () => { showPetDetailsModal.value = false; };
+
+const openReportDetailsModal = (reporte) => {
+  selectedReport.value = reporte;
+  showReportDetailsModal.value = true;
+};
+const closeReportDetailsModal = () => { showReportDetailsModal.value = false; };
 
 const openQrModal = async (petId) => {
-    qrCodeUrl.value = '';
-    showQrModal.value = true;
-    try {
-        const res = await PetService.getPetQrCode(petId);
-        qrCodeUrl.value = res.data.qrCode;
-    } catch (err) { console.error("Error generando QR", err); }
+  qrCodeUrl.value = '';
+  showQrModal.value = true;
+  try {
+    const res = await PetService.getPetQrCode(petId);
+    qrCodeUrl.value = res.data.qrCode;
+  } catch (err) { console.error("Error generando QR", err); }
 };
 const closeQrModal = () => { showQrModal.value = false; };
 
-const openImageViewer = (imageUrl) => {
-  if (imageUrl) { imageToView.value = imageUrl; showImageViewer.value = true; }
-};
+const openImageViewer = (imageUrl) => { if (imageUrl) { imageToView.value = imageUrl; showImageViewer.value = true; }};
 const closeImageViewer = () => { showImageViewer.value = false; };
 
-const handleImageSelection = (event) => { const file = event.target.files[0]; if (file) { imageFile.value = file; imagePreviewUrl.value = URL.createObjectURL(file); } };
-const handleProfileImageSelection = (event) => { const file = event.target.files[0]; if (file) { profileImageFile.value = file; profileImagePreviewUrl.value = URL.createObjectURL(file); } };
+// --- Lógica de Perfil de Usuario ---
+const openProfileModal = () => {
+  if (!user.value) return;
+  // Pre-llena el formulario con los datos actuales del usuario
+  Object.assign(profileForm, {
+    nombre: user.value.nombre,
+    telefono: user.value.telefono || '',
+    ciudad: user.value.ciudad || '', 
+    direccionDetallada: user.value.direccionDetallada || '',
+    fotoPerfil: user.value.fotoPerfil || ''
+  });
+  profileImagePreviewUrl.value = user.value.fotoPerfil || '';
+  profileImageFile.value = null;
+  modalError.value = '';
+  showProfileModal.value = true;
+};
 
-const activeReports = computed(() =>
-  myReports.value.filter(r => ['perdida', 'encontrada', 'adopcion'].includes(r.tipo))
+const closeProfileModal = () => {
+  showProfileModal.value = false;
+};
 
+const handleUpdateProfile = async (profileDataFromModal) => {
+  isSubmitting.value = true;
+  modalError.value = '';
+  try {
+    let payload = {
+      nombre: profileDataFromModal.nombre,
+      telefono: profileDataFromModal.telefono,
+      ciudad: profileDataFromModal.ciudad,
+      direccionDetallada: profileDataFromModal.direccionDetallada,
+    };
+
+    // Si se seleccionó una nueva imagen de perfil, súbela primero
+    if (profileImageFile.value) {
+      // Reutilizamos el servicio de subida, asegúrate que existe y funciona
+      const res = await PetService.uploadPetImage(profileImageFile.value); 
+      payload.fotoPerfil = res.data.secure_url;
+    }
+
+    // Llama al servicio para actualizar el perfil en el backend
+    const response = await AuthService.updateProfile(payload);
+
+  
+    const updatedUser = { ...authStore.user, user: response.data.user };
+    authStore.login(updatedUser);
+    user.value = response.data.user;
+
+    closeProfileModal();
+    Swal.fire('¡Éxito!', 'Tu perfil ha sido actualizado.', 'success');
+
+  } catch (err) {
+    console.error("Error actualizando perfil:", err);
+    modalError.value = "No se pudo actualizar el perfil.";
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+// --- Lógica de Manejo de Imágenes y Misceláneos ---
+
+// Maneja la selección de un nuevo archivo para la foto de perfil
+const handleProfileImageSelection = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    profileImageFile.value = file;
+    // Crea una URL local para la vista previa instantánea
+    profileImagePreviewUrl.value = URL.createObjectURL(file);
+  }
+};
+
+// Maneja la selección de imagen para modales genéricos (como el de mascotas)
+const handleImageSelection = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    imageFile.value = file;
+    imagePreviewUrl.value = URL.createObjectURL(file);
+  }
+};
+
+// Formatea la fecha de registro del usuario para mostrarla
+const formattedJoinDate = computed(() => 
+  user.value?.fechaRegistro 
+    ? new Date(user.value.fechaRegistro).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) 
+    : ''
 );
 
-const formattedJoinDate = computed(() => {
-  if (user.value?.fechaRegistro) {
-    return new Date(user.value.fechaRegistro).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
-  }
-  return '';
-});
-
-const logout = () => { authStore.logout(); router.push('/login'); };
+// Cierra la sesión del usuario y lo redirige a la página de login
+const logout = () => {
+  authStore.logout();
+  router.push('/loginregister');
+};
 </script>
 
 <style scoped>

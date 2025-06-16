@@ -1,47 +1,84 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('cancel')">
-    <div class="modal-content animate__animated animate__fadeInUp">
+    <div class="modal-content">
       <h2>Editar Reporte</h2>
-      <form @submit.prevent="$emit('save')">
-        <label>Nombre</label>
-        <input v-model="report.nombre" type="text" placeholder="Nombre del animal" />
+      
+      <!-- El formulario ahora usa 'localReport' -->
+      <form v-if="localReport" @submit.prevent="saveChanges">
+        
+        <!-- CAMPOS COMUNES -->
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" v-model="localReport.nombre" required />
+        </div>
+        <div class="form-group">
+          <label>Especie</label>
+          <input type="text" v-model="localReport.especie" required />
+        </div>
+        <div class="form-group">
+          <label>Raza</label>
+          <input type="text" v-model="localReport.raza" />
+        </div>
+        <div class="form-group">
+          <label>Ciudad</label>
+          <input type="text" v-model="localReport.ciudad" required />
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea v-model="localReport.descripcion" rows="3"></textarea>
+        </div>
 
-        <label>Ciudad</label>
-        <input v-model="report.ciudad" type="text" placeholder="Ej. San Pedro Sula" />
-
-        <label>Última ubicación vista</label>
-        <input v-model="report.ultimaUbicacion.texto" type="text" placeholder="Ej. Villas del Sol, SPS" />
-
-        <label>Coordenadas - Latitud</label>
-        <input v-model.number="report.ultimaUbicacion.coordinates[1]" type="number" step="any" placeholder="Ej. 15.504" />
-
-        <label>Coordenadas - Longitud</label>
-        <input v-model.number="report.ultimaUbicacion.coordinates[0]" type="number" step="any" placeholder="Ej. -88.025" />
-
-        <label>Descripción</label>
-        <input v-model="report.descripcion" type="text" placeholder="Ej. Collares, manchas, etc" />
-
-        <label>Especie</label>
-        <input v-model="report.especie" type="text" placeholder="Ej. Perro, Gato" />
-
-        <label>Raza</label>
-        <input v-model="report.raza" type="text" placeholder="Ej. Labrador" />
-
-        <label>Recompensa (opcional)</label>
-        <input v-model.number="report.recompensa" type="number" placeholder="Ej. 500" />
-
+        <!-- CAMPOS SOLO PARA REPORTES DE 'PERDIDA' -->
+        <template v-if="localReport.tipo === 'perdida'">
+          <div class="form-group">
+            <label>Recompensa (opcional)</label>
+            <input type="number" v-model.number="localReport.recompensa" />
+          </div>
+          <div class="form-group">
+            <label>Última ubicación vista</label>
+            <input type="text" v-model="localReport.ultimaUbicacion.texto" />
+          </div>
+        </template>
+        
+        <!-- Botones de Acción -->
         <div class="modal-actions">
-        <button type="button" class="btn-custom-secondary" @click="$emit('cancel')">Cancelar</button>
-        <button type="submit" class="btn-custom-primary">Guardar</button>
-      </div>
+          <button type="button" @click="$emit('cancel')" class="btn-custom-secondary">Cancelar</button>
+          <button type="submit" class="btn-custom-primary">Guardar Cambios</button>
+        </div>
       </form>
     </div>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { ref, watch } from 'vue';
+
+const props = defineProps({
   report: Object
 });
-defineEmits(['save', 'cancel']);
+
+const emit = defineEmits(['save', 'cancel']);
+
+// 1. Creamos una copia local y reactiva de los datos
+const localReport = ref(null);
+
+// 2. Usamos 'watch' para actualizar la copia local cada vez que el 'prop' cambie
+// (es decir, cada vez que se abre el modal con un nuevo reporte)
+watch(() => props.report, (newReport) => {
+  if (newReport) {
+    // Hacemos una copia profunda para evitar problemas con objetos anidados
+    localReport.value = JSON.parse(JSON.stringify(newReport));
+  }
+}, { immediate: true });
+
+// 3. Cuando se guarda, emitimos el objeto local completo y actualizado
+const saveChanges = () => {
+  emit('save', localReport.value);
+};
 </script>
+
+<style scoped>
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; margin-bottom: .5rem; font-weight: 500; text-align: left; }
+.form-group input, .form-group textarea { width: 100%; box-sizing: border-box; }
+</style>
