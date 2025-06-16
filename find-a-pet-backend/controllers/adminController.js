@@ -54,9 +54,38 @@ exports.getAllUsers = async (req, res) => {
 // Obtener todas las mascotas
 exports.getAllMascotas = async (req, res) => {
   try {
-    const mascotas = await Mascota.find().populate('propietarioId', 'nombre');
+    const filtro = {};
+    const { terminoBusqueda } = req.query;
+
+    if (terminoBusqueda) {
+      const regex = new RegExp(terminoBusqueda, 'i');
+      filtro.$or = [
+        { nombre: regex },
+        { especie: regex },
+        { raza: regex }
+      ];
+    }
+
+    const mascotas = await Mascota.find(filtro).populate('propietarioId', 'nombre email');
     res.json(mascotas);
   } catch (err) { res.status(500).json({ msg: 'Error del servidor' }); }
+};
+
+exports.createPet = async (req, res) => {
+  try {
+    // Nota: El propietarioId debe ser un ID de usuario válido.
+    const nuevaMascota = new Mascota(req.body);
+    await nuevaMascota.save();
+    res.status(201).json(nuevaMascota);
+  } catch (err) { res.status(500).json({ msg: 'Error del servidor al crear mascota.' }); }
+};
+
+exports.updatePet = async (req, res) => {
+  try {
+    const mascotaActualizada = await Mascota.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!mascotaActualizada) return res.status(404).json({ msg: 'Mascota no encontrada' });
+    res.json(mascotaActualizada);
+  } catch (err) { res.status(500).json({ msg: 'Error del servidor al actualizar mascota.' }); }
 };
 
 // Eliminar un usuario

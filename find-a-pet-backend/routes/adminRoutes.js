@@ -9,7 +9,9 @@ const {
     deleteUser,
     deleteMascota,
     createUser,
-    updateUser
+    updateUser,
+    createPet,
+    updatePet
 } = require('../controllers/adminController');
 
 // Todas las rutas aquí están protegidas y solo accesibles para administradores
@@ -20,5 +22,7 @@ router.delete('/users/:id', verifyAdmin, deleteUser);
 router.delete('/mascotas/:id', verifyAdmin, deleteMascota);
 router.post('/users', verifyAdmin, createUser);
 router.put('/users/:id', verifyAdmin, updateUser);
+router.post('/mascotas', verifyAdmin, createPet);
+router.put('/mascotas/:id', verifyAdmin, updatePet);
 
 module.exports = router;

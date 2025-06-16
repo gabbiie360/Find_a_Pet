@@ -3,9 +3,9 @@
     <aside class="sidebar">
       <div class="sidebar-header">Admin Dashboard</div>
       <nav class="sidebar-nav">
-        <a href="#" @click.prevent="currentView = 'stats'" :class="{ active: currentView === 'stats' }">Estadísticas</a>
-        <a href="#" @click.prevent="currentView = 'users'" :class="{ active: currentView === 'users' }">Gestionar Usuarios</a>
-        <a href="#" @click.prevent="currentView = 'pets'" :class="{ active: currentView === 'pets' }">Gestionar Mascotas</a>
+        <a href="#" @click.prevent="switchToView('stats')" :class="{ active: currentView === 'stats' }">Estadísticas</a>
+        <a href="#" @click.prevent="switchToView('users')" :class="{ active: currentView === 'users' }">Gestionar Usuarios</a>
+        <a href="#" @click.prevent="switchToView('pets')" :class="{ active: currentView === 'pets' }">Gestionar Mascotas</a>
       </nav>
     </aside>
 
@@ -29,10 +29,14 @@
           </div>
         </div>
 
-        <!-- Vista de Usuarios -->
+        <!-- Vista de Usuarios con CRUD y Búsqueda -->
         <div v-show="currentView === 'users'" class="table-view">
           <div class="view-header">
             <h1>Gestionar Usuarios</h1>
+            <form @submit.prevent="fetchUsers" class="search-form">
+              <input type="text" v-model="userSearchTerm" @input="handleUserSearchInput" placeholder="Buscar por nombre o email...">
+              <button type="submit">Buscar</button>
+            </form>
             <button @click="openUserModal(null)" class="btn-add">Añadir Usuario</button>
           </div>
           <table>
@@ -40,7 +44,10 @@
               <tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Acciones</th></tr>
             </thead>
             <tbody>
-              <tr v-for="user in users" :key="user._id">
+              <tr v-if="users.length === 0">
+                <td colspan="4" class="no-results">No se encontraron usuarios.</td>
+              </tr>
+              <tr v-for="user in users" :key="user._id" v-else>
                 <td>{{ user.nombre }}</td>
                 <td>{{ user.email }}</td>
                 <td><span class="status-tag" :class="`role-${user.rol}`">{{ user.rol }}</span></td>
@@ -53,20 +60,32 @@
           </table>
         </div>
 
-        <!-- Vista de Mascotas -->
+        <!-- Vista de Mascotas con CRUD y Búsqueda -->
         <div v-show="currentView === 'pets'" class="table-view">
-          <h1>Gestionar Mascotas</h1>
+          <div class="view-header">
+            <h1>Gestionar Mascotas</h1>
+            <form @submit.prevent="fetchPets" class="search-form">
+              <input type="text" v-model="petSearchTerm" @input="handlePetSearchInput" placeholder="Buscar por nombre, especie...">
+              <button type="submit">Buscar</button>
+            </form>
+            <button @click="openAdminPetModal(null)" class="btn-add">Añadir Mascota</button>
+          </div>
           <table>
              <thead>
-              <tr><th>Nombre</th><th>Especie</th><th>Estado</th><th>Dueño</th><th>Acciones</th></tr>
+              <tr><th>Nombre</th><th>Especie</th><th>Raza</th><th>Estado</th><th>Dueño</th><th>Acciones</th></tr>
             </thead>
             <tbody>
-              <tr v-for="pet in pets" :key="pet._id">
+              <tr v-if="pets.length === 0">
+                  <td colspan="6" class="no-results">No se encontraron mascotas.</td>
+              </tr>
+              <tr v-for="pet in pets" :key="pet._id" v-else>
                 <td>{{ pet.nombre }}</td>
                 <td>{{ pet.especie }}</td>
+                <td>{{ pet.raza || 'N/A' }}</td>
                 <td><span class="status-tag" :class="pet.estado.replace(' ', '-')">{{ pet.estado }}</span></td>
-                <td>{{ pet.propietarioId?.nombre || 'N/A' }}</td>
+                <td>{{ pet.propietarioId?.nombre || 'Sin dueño asignado' }}</td>
                 <td class="action-buttons">
+                  <button @click="openAdminPetModal(pet)" class="btn-edit">Editar</button>
                   <button @click="deletePet(pet._id)" class="btn-delete">Eliminar</button>
                 </td>
               </tr>
@@ -90,12 +109,39 @@
             <option value="admin">Admin</option>
           </select>
           <input type="password" v-model="userForm.password" :placeholder="isEditingUser ? 'Nueva contraseña (opcional)' : 'Contraseña'" :required="!isEditingUser">
-          
           <div class="modal-actions">
             <button type="button" @click="closeUserModal" class="btn-secondary">Cancelar</button>
             <button type="submit" class="btn-primary" :disabled="isSubmitting">{{ isSubmitting ? 'Guardando...' : 'Guardar' }}</button>
           </div>
            <p v-if="modalError" class="error-message">{{ modalError }}</p>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL PARA AÑADIR/EDITAR MASCOTA DESDE ADMIN -->
+    <div v-if="showAdminPetModal" class="modal-overlay" @click.self="closeAdminPetModal">
+      <div class="modal-content animate__animated animate__fadeInUp">
+        <h2>{{ isEditingPet ? 'Editar Mascota' : 'Añadir Nueva Mascota' }}</h2>
+        <form @submit.prevent="handleSaveAdminPet">
+          <input type="text" v-model="adminPetForm.nombre" placeholder="Nombre" required>
+          <input type="text" v-model="adminPetForm.especie" placeholder="Especie" required>
+          <input type="text" v-model="adminPetForm.raza" placeholder="Raza">
+          <textarea v-model="adminPetForm.descripcion" placeholder="Descripción" required></textarea>
+          <select v-model="adminPetForm.estado">
+            <option value="en casa">En Casa</option>
+            <option value="perdida">Perdida</option>
+            <option value="encontrada">Encontrada</option>
+            <option value="adopcion">En Adopción</option>
+          </select>
+          <select v-model="adminPetForm.propietarioId" required>
+            <option :value="null" disabled>-- Selecciona un propietario --</option>
+            <option v-for="user in users" :key="user._id" :value="user._id">{{ user.nombre }} ({{ user.email }})</option>
+          </select>
+          <div class="modal-actions">
+            <button type="button" @click="closeAdminPetModal" class="btn-secondary">Cancelar</button>
+            <button type="submit" class="btn-primary" :disabled="isSubmitting">{{ isSubmitting ? 'Guardando...' : 'Guardar' }}</button>
+          </div>
+          <p v-if="modalError" class="error-message">{{ modalError }}</p>
         </form>
       </div>
     </div>
@@ -113,6 +159,7 @@ import { es } from 'date-fns/locale';
 
 ChartJS.register(Title, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
 
+// --- ESTADOS GENERALES ---
 const currentView = ref('stats');
 const loading = ref(true);
 const stats = ref({ nuevosUsuarios: [], nuevasMascotas: [], mascotasEncontradasDiarias: [] });
@@ -121,20 +168,27 @@ const pets = ref([]);
 const isSubmitting = ref(false);
 const modalError = ref('');
 
-// --- Estados para el Modal de Usuario ---
+// --- ESTADOS PARA BÚSQUEDA ---
+const userSearchTerm = ref('');
+const petSearchTerm = ref('');
+let userSearchTimeout = null;
+let petSearchTimeout = null;
+
+// --- ESTADOS PARA MODALES ---
 const showUserModal = ref(false);
 const isEditingUser = ref(false);
-const userForm = reactive({
-  _id: null,
-  nombre: '',
-  email: '',
-  telefono: '',
-  ciudad: '',
-  password: '',
-  rol: 'usuario'
+const userForm = reactive({ _id: null, nombre: '', email: '', telefono: '', ciudad: '', password: '', rol: 'usuario' });
+
+const showAdminPetModal = ref(false);
+const isEditingPet = ref(false);
+const adminPetForm = reactive({
+  _id: null, nombre: '', especie: '', raza: '', descripcion: '', 
+  estado: 'en casa', propietarioId: null
 });
 
-onMounted(async () => {
+// --- CARGA INICIAL DE DATOS ---
+const loadInitialData = async () => {
+  loading.value = true;
   try {
     const [statsRes, usersRes, petsRes] = await Promise.all([
       AdminService.getStats(),
@@ -149,13 +203,123 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
+};
+onMounted(loadInitialData);
 
+
+// --- LÓGICA DE BÚSQUEDA Y GESTIÓN DE VISTAS ---
+const fetchUsers = async () => {
+  try {
+    const res = await AdminService.getUsers(userSearchTerm.value);
+    users.value = res.data;
+  } catch (err) { console.error("Error buscando usuarios:", err); }
+};
+const handleUserSearchInput = () => {
+  clearTimeout(userSearchTimeout);
+  userSearchTimeout = setTimeout(() => { fetchUsers(); }, 500);
+};
+
+const fetchPets = async () => {
+  try {
+    const res = await AdminService.getPets(petSearchTerm.value);
+    pets.value = res.data;
+  } catch (err) { console.error("Error buscando mascotas:", err); }
+};
+const handlePetSearchInput = () => {
+  clearTimeout(petSearchTimeout);
+  petSearchTimeout = setTimeout(() => { fetchPets(); }, 500);
+};
+
+const switchToView = async (view) => {
+    currentView.value = view;
+    if (view === 'users') { userSearchTerm.value = ''; await fetchUsers(); }
+    if (view === 'pets') { petSearchTerm.value = ''; await fetchPets(); }
+};
+
+// --- LÓGICA DEL CRUD DE USUARIOS ---
+const openUserModal = (user) => {
+  if (user) {
+    isEditingUser.value = true;
+    Object.assign(userForm, { ...user, password: '' });
+  } else {
+    isEditingUser.value = false;
+    Object.assign(userForm, { _id: null, nombre: '', email: '', telefono: '', ciudad: '', password: '', rol: 'usuario' });
+  }
+  showUserModal.value = true;
+};
+const closeUserModal = () => { showUserModal.value = false; modalError.value = ''; };
+
+const handleSaveUser = async () => {
+    isSubmitting.value = true;
+    modalError.value = '';
+    try {
+        const payload = { ...userForm };
+        if (!payload.password) delete payload.password;
+        if (isEditingUser.value) {
+            await AdminService.updateUser(payload._id, payload);
+        } else {
+            await AdminService.createUser(payload);
+        }
+        await fetchUsers();
+        closeUserModal();
+    } catch (err) {
+        modalError.value = err.response?.data?.msg || 'Error al guardar el usuario.';
+    } finally {
+        isSubmitting.value = false;
+    }
+};
+
+const deleteUser = async (userId) => {
+  if (confirm('¿Seguro que quieres eliminar este usuario y todas sus mascotas?')) {
+    await AdminService.deleteUser(userId);
+    users.value = users.value.filter(u => u._id !== userId);
+  }
+};
+
+// --- LÓGICA DEL CRUD DE MASCOTAS ---
+const openAdminPetModal = (pet) => {
+  if (pet) {
+    isEditingPet.value = true;
+    Object.assign(adminPetForm, { ...pet, propietarioId: pet.propietarioId?._id });
+  } else {
+    isEditingPet.value = false;
+    Object.assign(adminPetForm, { _id: null, nombre: '', especie: '', raza: '', descripcion: '', estado: 'en casa', propietarioId: null });
+  }
+  showAdminPetModal.value = true;
+};
+const closeAdminPetModal = () => { showAdminPetModal.value = false; modalError.value = ''; };
+
+const handleSaveAdminPet = async () => {
+  isSubmitting.value = true;
+  modalError.value = '';
+  try {
+    const payload = { ...adminPetForm };
+    if (isEditingPet.value) {
+      await AdminService.updatePet(payload._id, payload);
+    } else {
+      await AdminService.createPet(payload);
+    }
+    await fetchPets();
+    closeAdminPetModal();
+  } catch (err) {
+    modalError.value = 'Error al guardar la mascota.';
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+const deletePet = async (petId) => {
+  if (confirm('¿Seguro que quieres eliminar esta mascota?')) {
+    await AdminService.deletePet(petId);
+    pets.value = pets.value.filter(p => p._id !== petId);
+  }
+};
+
+// --- LÓGICA DEL GRÁFICO ---
 const chartData = computed(() => {
     const hoy = new Date();
     const diasDelIntervalo = eachDayOfInterval({ start: subDays(hoy, 6), end: hoy });
     const labels = diasDelIntervalo.map(dia => format(dia, 'd MMM', { locale: es }));
-    
     const datosNuevosUsuarios = Array.isArray(stats.value.nuevosUsuarios) ? stats.value.nuevosUsuarios : [];
     const datosNuevasMascotas = Array.isArray(stats.value.nuevasMascotas) ? stats.value.nuevasMascotas : [];
     const datosMascotasEncontradas = Array.isArray(stats.value.mascotasEncontradasDiarias) ? stats.value.mascotasEncontradasDiarias : [];
@@ -165,7 +329,6 @@ const chartData = computed(() => {
         const match = dataArray.find(d => d._id === diaFormato);
         return match ? match.count : 0;
     };
-
     const dataUsuarios = diasDelIntervalo.map(dia => getCountForDay(datosNuevosUsuarios, dia));
     const dataMascotas = diasDelIntervalo.map(dia => getCountForDay(datosNuevasMascotas, dia));
     const dataEncontradas = diasDelIntervalo.map(dia => getCountForDay(datosMascotasEncontradas, dia));
@@ -179,79 +342,15 @@ const chartData = computed(() => {
         ]
     };
 });
-
 const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
 };
-
-// --- Lógica del CRUD de Usuarios ---
-const openUserModal = (user) => {
-  if (user) {
-    isEditingUser.value = true;
-    Object.assign(userForm, { ...user, password: '' }); // Limpiamos el campo de contraseña
-  } else {
-    isEditingUser.value = false;
-    Object.assign(userForm, { _id: null, nombre: '', email: '', telefono: '', ciudad: '', password: '', rol: 'usuario' });
-  }
-  showUserModal.value = true;
-};
-
-const closeUserModal = () => {
-  showUserModal.value = false;
-  modalError.value = '';
-};
-
-const handleSaveUser = async () => {
-    isSubmitting.value = true;
-    modalError.value = '';
-    try {
-        const payload = { ...userForm };
-        if (!payload.password) delete payload.password;
-
-        if (isEditingUser.value) {
-            await AdminService.updateUser(payload._id, payload);
-        } else {
-            await AdminService.createUser(payload);
-        }
-        
-        const usersRes = await AdminService.getUsers();
-        users.value = usersRes.data;
-        closeUserModal();
-    } catch (err) {
-        modalError.value = err.response?.data?.msg || 'Error al guardar el usuario.';
-        console.error("Error guardando usuario:", err);
-    } finally {
-        isSubmitting.value = false;
-    }
-};
-
-const deleteUser = async (userId) => {
-  if (confirm('¿Seguro que quieres eliminar este usuario y todas sus mascotas? Esta acción es irreversible.')) {
-    try {
-      await AdminService.deleteUser(userId);
-      users.value = users.value.filter(u => u._id !== userId);
-    } catch (err) {
-      console.error("Error al eliminar usuario:", err);
-    }
-  }
-};
-
-const deletePet = async (petId) => {
-  if (confirm('¿Seguro que quieres eliminar esta mascota?')) {
-    try {
-      await AdminService.deletePet(petId);
-      pets.value = pets.value.filter(p => p._id !== petId);
-    } catch (err) {
-      console.error("Error al eliminar mascota:", err);
-    }
-  }
-};
 </script>
 
 <style scoped>
-/* ESTILOS COMPLETOS (CON ADICIONES PARA EL CRUD) */
+/* ESTILOS COMPLETOS (SIN CAMBIOS) */
 .admin-body { display: flex; min-height: 100vh; background-color: #f8f9fa; font-family: 'Poppins', sans-serif; }
 .sidebar { width: 250px; background-color: #343a40; color: white; padding-top: 20px; flex-shrink: 0; position: fixed; height: 100%; }
 .main-content { margin-left: 250px; flex-grow: 1; padding: 40px; }
@@ -268,9 +367,12 @@ const deletePet = async (petId) => {
 .stat-card.found h2 { color: #28a745; }
 .stat-card p { margin: 5px 0 0 0; color: #6c757d; font-weight: 500; }
 .chart-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); height: 400px; }
-
 .table-view { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-.view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+.view-header h1 { margin: 0; flex-grow: 1; }
+.search-form { display: flex; gap: 10px; }
+.search-form input { padding: 8px 12px; border: 1px solid #ccc; border-radius: 5px; width: 250px; }
+.search-form button { padding: 8px 15px; background-color: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; }
 .btn-add { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 15px; border-bottom: 1px solid #dee2e6; text-align: left; vertical-align: middle; }
@@ -282,9 +384,10 @@ th { background-color: #e9ecef; font-weight: 600; }
 .status-tag.perdida { background: #ffebee; color: #c62828; }
 .status-tag.encontrada { background: #d4edda; color: #155724; }
 .status-tag.en-casa { background: #e8f5e9; color: #2e7d32; }
+.status-tag.adopcion { background-color: #e3f2fd; color: #1565c0;}
 .status-tag.role-admin { background-color: #d1ecf1; color: #0c5460; }
 .status-tag.role-usuario { background-color: #f8f9fa; color: #343a40; border: 1px solid #dee2e6; }
-
+td.no-results { text-align: center; padding: 30px; color: #6c757d; font-style: italic; }
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
 .modal-content { background: white; padding: 30px 40px; border-radius: 15px; width: 90%; max-width: 500px; }
 .modal-content h2 { margin-top: 0; }
