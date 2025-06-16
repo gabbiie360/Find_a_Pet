@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { Readable } = require('stream');
 const {
   getAllReports,
   getMyReports,
@@ -12,19 +13,25 @@ const upload = require('../middleware/upload');
 const cloudinary = require('../utils/cloudinary');
 const Report = require('../models/Report');
 
+// Función para convertir buffer a stream
+const bufferToStream = (buffer) => {
+  const stream = new Readable();
+  stream.push(buffer);
+  stream.push(null);
+  return stream;
+};
 
-// Obtener reportes del usuario actual
-router.get('/mine', verifyToken, getMyReports);
-
-// Obtener todos los reportes
-router.get('/', getAllReports);
-
-// Crear reporte con imagen integrada
+// Crear reporte con imagen
 router.post('/create', verifyToken, upload.single('imagen'), async (req, res) => {
   try {
-    const { tipo, descripcion, ciudad } = req.body;
+    const { tipo, descripcion, ciudad, nombre, especie, raza, recompensa, fechaPerdida, ultimaUbicacionTexto, latitud, longitud } = req.body;
 
-    // Subir imagen a Cloudinary si existe
+    const nuevaUbicacion = {
+      texto: ultimaUbicacionTexto || '',
+      coordinates: (latitud && longitud) ? [parseFloat(longitud), parseFloat(latitud)] : undefined,
+    };
+
+
     let imageUrl = '';
     if (req.file) {
       const result = await new Promise((resolve, reject) => {
@@ -35,32 +42,40 @@ router.post('/create', verifyToken, upload.single('imagen'), async (req, res) =>
             else resolve(result);
           }
         );
-        req.file.stream.pipe(stream);
+        bufferToStream(req.file.buffer).pipe(stream); // ✅ Usamos .buffer y no .stream
       });
       imageUrl = result.secure_url;
     }
 
-    // Crear reporte con URL de imagen
     const nuevoReporte = new Report({
-      tipo,
-      descripcion,
-      ciudad,
-      fotos: imageUrl ? [imageUrl] : [],
-      creadoPor: req.user.id
-    });
+    tipo,
+    descripcion,
+    ciudad,
+    nombre,
+    especie,
+    raza,
+    recompensa: Number(recompensa) || 0,
+    fotos: imageUrl ? [imageUrl] : [],
+    creadoPor: req.user.id,
+    fecha: new Date(),
+    fechaPerdida: tipo === 'perdida' ? new Date(fechaPerdida) : null,
+    ultimaUbicacion: nuevaUbicacion
+  });
+
 
     await nuevoReporte.save();
-    res.status(201).json({ msg: 'Reporte creado exitosamente' });
+    res.status(201).json({ msg: 'Reporte creado exitosamente', reporte: nuevoReporte });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Error al crear el reporte' });
   }
 });
 
-// Actualizar un reporte
+// Rutas adicionales
+router.get('/', getAllReports);
+router.get('/mine', verifyToken, getMyReports);
 router.put('/:id', verifyToken, updateReport);
-
-// Eliminar un reporte
 router.delete('/:id', verifyToken, deleteReport);
 
 module.exports = router;

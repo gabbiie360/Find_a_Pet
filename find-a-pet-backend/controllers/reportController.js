@@ -1,119 +1,107 @@
 const Report = require('../models/Report');
 
+// --- CREAR UN NUEVO REPORTE (CORREGIDO) ---
 const createReport = async (req, res) => {
   try {
-    const { tipo, descripcion, ciudad } = req.body;
+    // Tomamos todos los campos del body y añadimos el ID del usuario
+    const reportData = { ...req.body, creadoPor: req.user.id };
 
-    const newReport = new Report({
-      tipo,
-      descripcion,
-      ciudad,
-      creadoPor: req.user.id
-    });
-
+    const newReport = new Report(reportData);
     await newReport.save();
-    res.status(201).json({ msg: 'Reporte creado exitosamente' });
+    
+    res.status(201).json({ msg: 'Reporte creado exitosamente', report: newReport });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: 'Error al crear el reporte' });
+    console.error("Error en createReport:", err);
+    // Manejo de errores de validación de Mongoose
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ msg: 'Datos inválidos', errors: err.errors });
+    }
+    res.status(500).json({ msg: 'Error del servidor al crear el reporte' });
   }
 };
 
-
-
-// Obtener todos los reportes
+// --- OBTENER TODOS LOS REPORTES PÚBLICOS (SIN CAMBIOS) ---
 const getAllReports = async (req, res) => {
   try {
-    const { tipo, ciudad } = req.query;
-
-    // Construir filtros dinámicos
+    const { tipo, ciudad, especie } = req.query;
     let filtro = {};
     if (tipo) filtro.tipo = tipo;
-    if (ciudad) filtro.ciudad = ciudad;
+    if (ciudad) filtro.ciudad = { $regex: ciudad, $options: 'i' }; // Búsqueda insensible a mayúsculas
+    if (especie) filtro.especie = especie;
 
     const reports = await Report.find(filtro)
-      .populate('creadoPor', 'nombre ciudad')
-      .sort({ fecha: -1 });
+      .populate('creadoPor', 'nombre') // Solo trae el nombre del creador
+      .sort({ createdAt: -1 });
 
     res.status(200).json(reports);
   } catch (err) {
-    console.error(err);
+    console.error("Error en getAllReports:", err);
     res.status(500).json({ msg: 'Error al obtener los reportes' });
   }
 };
 
-
-// Obtener reportes del usuario autenticado
+// --- OBTENER LOS REPORTES DEL USUARIO AUTENTICADO (SIN CAMBIOS) ---
 const getMyReports = async (req, res) => {
   try {
     const reports = await Report.find({ creadoPor: req.user.id })
-      .sort({ fecha: -1 });
-
+      .sort({ createdAt: -1 });
     res.status(200).json(reports);
   } catch (err) {
-    console.error(err);
+    console.error("Error en getMyReports:", err);
     res.status(500).json({ msg: 'Error al obtener tus reportes' });
   }
 };
 
-
-
+// --- ACTUALIZAR UN REPORTE EXISTENTE (CORREGIDO) ---
 const updateReport = async (req, res) => {
   try {
-    const reportId = req.params.id;
+    const report = await Report.findById(req.params.id);
 
-    // Buscar el reporte
-    const report = await Report.findById(reportId);
     if (!report) {
       return res.status(404).json({ msg: 'Reporte no encontrado' });
     }
 
-    // Verificar que el reporte pertenece al usuario
+    // Verificar que el usuario es el dueño del reporte
     if (report.creadoPor.toString() !== req.user.id) {
       return res.status(403).json({ msg: 'No autorizado para editar este reporte' });
     }
 
-    // Actualizar campos permitidos
-    const camposPermitidos = ['tipo', 'descripcion', 'ciudad'];
-    camposPermitidos.forEach(campo => {
-      if (req.body[campo]) {
-        report[campo] = req.body[campo];
-      }
-    });
+    // Lógica flexible y segura para actualizar el reporte
+    // $set actualiza solo los campos que vienen en req.body
+    const updatedReport = await Report.findByIdAndUpdate(
+        req.params.id,
+        { $set: req.body },
+        { new: true, runValidators: true, context: 'query' }
+    );
 
-    await report.save();
-    res.status(200).json({ msg: 'Reporte actualizado exitosamente', reporte: report });
+    res.status(200).json({ msg: 'Reporte actualizado exitosamente', reporte: updatedReport });
   } catch (err) {
-    console.error(err);
+    console.error("Error en updateReport:", err);
+    if (err.name === 'ValidationError') {
+        return res.status(400).json({ msg: 'Datos inválidos', errors: err.errors });
+    }
     res.status(500).json({ msg: 'Error al actualizar el reporte' });
   }
 };
 
+// --- ELIMINAR UN REPORTE (SIN CAMBIOS) ---
 const deleteReport = async (req, res) => {
   try {
-    const reportId = req.params.id;
-
-    // Buscar el reporte
-    const report = await Report.findById(reportId);
+    const report = await Report.findById(req.params.id);
     if (!report) {
       return res.status(404).json({ msg: 'Reporte no encontrado' });
     }
-
-    // Verificar que el reporte pertenece al usuario
     if (report.creadoPor.toString() !== req.user.id) {
       return res.status(403).json({ msg: 'No autorizado para eliminar este reporte' });
     }
-
-    await Report.findByIdAndDelete(reportId);
+    await Report.findByIdAndDelete(req.params.id);
     res.status(200).json({ msg: 'Reporte eliminado exitosamente' });
   } catch (err) {
-    console.error(err);
+    console.error("Error en deleteReport:", err);
     res.status(500).json({ msg: 'Error al eliminar el reporte' });
   }
 };
-
-
 
 module.exports = {
   createReport,
@@ -122,5 +110,3 @@ module.exports = {
   updateReport,
   deleteReport
 };
-
-

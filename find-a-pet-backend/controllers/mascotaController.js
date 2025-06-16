@@ -167,7 +167,7 @@ exports.obtenerMascotasFiltradas = async (req, res) => {
     const { ciudad, especie, estado, fecha } = req.query;
 
     const filtro = {
-      estado: { $ne: 'en casa' } // Excluir mascotas que no están reportadas
+      estado: { $ne: 'en-casa' } // Excluir mascotas que no están reportadas
     };
 
     if (especie) filtro.especie = especie;
