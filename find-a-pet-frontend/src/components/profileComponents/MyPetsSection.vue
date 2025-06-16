@@ -21,6 +21,7 @@
        
           <span :class="['pet-status', mascota.estado.toLowerCase()]">{{ mascota.estado }}</span>
         
+
         <img
           :src="mascota.fotos && mascota.fotos.length > 0 ? mascota.fotos[0] : placeholderImage"
           class="pet-photo"

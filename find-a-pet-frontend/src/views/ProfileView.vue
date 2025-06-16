@@ -331,31 +331,63 @@ const handleMarkAsFound = async (petId) => {
   } catch (err) { console.error("Error marcando como encontrada", err); }
 };
 
-const handleReportLost = async () => {
+const openReportModal = (mascota) => {
+  selectedPet.value = mascota; // Guardamos la mascota seleccionada
+  showReportModal.value = true;
+};
+
+const closeReportModal = () => {
+  showReportModal.value = false;
+  selectedPet.value = null;
+};
+
+const handleReportLost = async (reportDataFromModal) => {
     isSubmitting.value = true;
     modalError.value = '';
     try {
-        const reportData = {
-            mascota: selectedPet.value._id,
-            nombre: selectedPet.value.nombre,
-            especie: selectedPet.value.especie,
-            raza: selectedPet.value.raza,
-            ciudad: user.value.ciudad, // O una ciudad del formulario
-            descripcion: 'Perdido', // O una descripción del formulario
-            fotos: selectedPet.value.fotos,
-            tipo: 'perdida',
-            fechaPerdida: reportForm.fechaPerdida,
-            recompensa: reportForm.recompensa,
-        };
-        await ReportService.createReport(reportData); // Usar createReport genérico
+        // Construimos un FormData, que es lo que tu servicio espera
+        const formData = new FormData();
+        formData.append('nombre', reportDataFromModal.nombre);
+        formData.append('especie', reportDataFromModal.especie);
+        formData.append('raza', reportDataFromModal.raza);
+        formData.append('descripcion', `Reporte de pérdida para ${reportDataFromModal.nombre}.`);
+        formData.append('ciudad', reportDataFromModal.ciudad || user.value.ciudad);
+        formData.append('tipo', 'perdida');
+        formData.append('fechaPerdida', reportDataFromModal.fechaPerdida);
+        formData.append('recompensa', reportDataFromModal.recompensa || 0);
+        formData.append('ultimaUbicacionTexto', reportDataFromModal.ultimaUbicacion.texto);
+        formData.append('mascotaOriginalId', reportDataFromModal.mascotaId);
+
+        // Importante: Si la mascota tiene fotos, las añadimos al reporte
+        if (reportDataFromModal.fotos && reportDataFromModal.fotos.length > 0) {
+          // FormData no puede tomar un array directamente, así que lo hacemos uno por uno
+          reportDataFromModal.fotos.forEach(fotoUrl => {
+              formData.append('fotos[]', fotoUrl); 
+          });
+        }
+
+        // 1. Crear el nuevo reporte USANDO LA FUNCIÓN CORRECTA
+        await ReportService.createReportWithImage(formData);
+        
+        // 2. Actualizar el estado de la mascota original
+        await PetService.updatePet(reportDataFromModal.mascotaId, { estado: 'perdida' });
+
+        // 3. Refrescar los datos para ver los cambios
+        await fetchMisMascotas();
         await fetchMyReports();
+        
         closeReportModal();
+        Swal.fire('¡Reporte Creado!', `${reportDataFromModal.nombre} ha sido reportada como perdida.`, 'success');
+
     } catch(err) {
+        console.error("Error al reportar mascota como perdida:", err);
         modalError.value = 'Error al generar el reporte.';
     } finally {
         isSubmitting.value = false;
     }
 };
+
+
 
 // --- Lógica de Modales Genéricos y de Usuario ---
 const openGenericReportModal = () => { showGenericReportModal.value = true; };
