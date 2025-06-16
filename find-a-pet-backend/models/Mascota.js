@@ -9,29 +9,30 @@ const mascotaSchema = new Schema({
     required: true
   },
   nombre: { type: String, required: true },
-  especie: { type: String, required: true }, // 'Perro', 'Gato', etc.
+  especie: { type: String, required: true },
   raza: { type: String },
   edad: { type: Number },
   colores: [String],
   descripcion: { type: String, required: true },
-  fotos: [String], // Un array de URLs a las imágenes
+  fotos: [String],
   
-  // --- CAMPOS PARA CUANDO SE PIERDE ---
+  // --- CORRECCIÓN EN EL CAMPO 'estado' ---
   estado: {
     type: String,
-    enum: ['en casa', 'perdida', 'encontrada'],
-    default: 'en casa'
+    enum: ['en-casa', 'perdida', 'encontrada'], // Usamos guiones, no espacios
+    default: 'en-casa' // Usamos guiones, no espacios
   },
-  ultimaUbicacion: { // Formato GeoJSON para búsquedas por mapa
+  // ------------------------------------
+  
+  ultimaUbicacion: {
     type: { type: String, enum: ['Point'] },
-    coordinates: { type: [Number] } // [longitud, latitud]
+    coordinates: { type: [Number] }
   },
   fechaPerdida: { type: Date },
   recompensa: { type: Number, default: 0 }
 
-}, { timestamps: true }); // Añade createdAt y updatedAt automáticamente
+}, { timestamps: true });
 
-// Índice geoespacial para buscar mascotas por cercanía
 mascotaSchema.index({ ultimaUbicacion: '2dsphere' });
 
 module.exports = mongoose.model('Mascota', mascotaSchema);
