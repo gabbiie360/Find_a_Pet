@@ -20,7 +20,7 @@
         @logout="logout"
       />
       <main class="main-content">
-        <!-- Sección de Mascotas con todos los eventos conectados -->
+        <!-- Sección de Mascotas con el evento deletePet conectado a la función corregida -->
         <MyPetsSection
           :mascotas="mascotas"
           :placeholderImage="placeholderImage"
@@ -185,9 +185,11 @@ onMounted(async () => {
   try {
     const profileResponse = await AuthService.getProfileData();
     user.value = profileResponse.data.user;
+    // Cargar mascotas y reportes en paralelo para mejorar el rendimiento
     await Promise.all([fetchMisMascotas(), fetchMyReports()]);
   } catch (err) {
     error.value = 'No se pudo cargar tu perfil. Tu sesión puede haber expirado.';
+    // Si falla la carga del perfil, cerramos sesión y redirigimos
     authStore.logout();
     router.push('/loginregister');
   } finally {
@@ -198,22 +200,26 @@ onMounted(async () => {
 const fetchMisMascotas = async () => {
   try {
     const res = await PetService.getMyPets();
-    mascotas.value = res.data;
-  } catch (err) { console.error("Error cargando mascotas:", err); }
+    mascotas.value = res.data; // La respuesta de axios ya está en res.data
+  } catch (err) { 
+    console.error("Error cargando mascotas:", err); 
+    // Opcional: podrías mostrar un error no bloqueante al usuario
+  }
 };
 
 const fetchMyReports = async () => {
   try {
     const res = await ReportService.getMyReports();
     myReports.value = res.data || [];
-  } catch (err) { console.error("Error al cargar reportes:", err); }
+  } catch (err) { 
+    console.error("Error al cargar reportes:", err); 
+  }
 };
 
 // --- Lógica de Mascotas (CRUD) ---
 const openPetModal = (mascota = null) => {
   isEditing.value = !!mascota;
-  // Limpiamos y preparamos el formulario reactivo para el modal
-  Object.assign(petForm, mascota ? mascota : { _id: null, nombre: '', especie: '', raza: '', descripcion: '' });
+  Object.assign(petForm, mascota ? { ...mascota } : { _id: null, nombre: '', especie: '', raza: '', descripcion: '', fotos: [] });
   imagePreviewUrl.value = mascota?.fotos?.[0] || '';
   imageFile.value = null;
   modalError.value = '';
@@ -248,27 +254,36 @@ const handleSavePet = async (petDataFromModal) => {
   }
 };
 
-const handleDeletePet = async (petId) => {
+// =========================================================================
+// FUNCIÓN CORREGIDA PARA ELIMINAR MASCOTA
+// =========================================================================
+const handleDeletePet = async (petId, petName) => {
   const result = await Swal.fire({
-    title: '¿Estás seguro?',
-    text: "¡No podrás revertir esto! Se eliminarán también los reportes asociados.",
+    title: `¿Eliminar a ${petName}?`,
+    text: "Esta acción no se puede deshacer.",
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#d33',
     cancelButtonColor: '#3085d6',
-    confirmButtonText: 'Sí, ¡elimínala!',
+    confirmButtonText: 'Sí, ¡eliminar!',
     cancelButtonText: 'Cancelar'
   });
 
   if (result.isConfirmed) {
     try {
+      // Llamada correcta al método del servicio
       await PetService.deletePet(petId);
-      await fetchMisMascotas();
-      await fetchMyReports();
-      Swal.fire('¡Eliminada!', 'Tu mascota ha sido eliminada.', 'success');
+      
+      // Actualiza la lista de mascotas en la UI sin necesidad de volver a llamar al servidor
+      mascotas.value = mascotas.value.filter(pet => pet._id !== petId);
+      
+      // Opcional: Si eliminar una mascota debe eliminar sus reportes, refresca también los reportes
+      // await fetchMyReports(); 
+      
+      Swal.fire('¡Eliminada!', `${petName} ha sido eliminada.`, 'success');
     } catch (err) {
       console.error("Error al eliminar mascota:", err);
-      Swal.fire('Error', 'No se pudo eliminar la mascota.', 'error');
+      Swal.fire('Error', 'No se pudo eliminar la mascota. Inténtalo de nuevo.', 'error');
     }
   }
 };
@@ -332,7 +347,7 @@ const handleMarkAsFound = async (petId) => {
 };
 
 const openReportModal = (mascota) => {
-  selectedPet.value = mascota; // Guardamos la mascota seleccionada
+  selectedPet.value = mascota;
   showReportModal.value = true;
 };
 
@@ -345,7 +360,6 @@ const handleReportLost = async (reportDataFromModal) => {
     isSubmitting.value = true;
     modalError.value = '';
     try {
-        // Construimos un FormData, que es lo que tu servicio espera
         const formData = new FormData();
         formData.append('nombre', reportDataFromModal.nombre);
         formData.append('especie', reportDataFromModal.especie);
@@ -358,21 +372,8 @@ const handleReportLost = async (reportDataFromModal) => {
         formData.append('ultimaUbicacionTexto', reportDataFromModal.ultimaUbicacion.texto);
         formData.append('mascotaOriginalId', reportDataFromModal.mascotaId);
 
-        // Importante: Si la mascota tiene fotos, las añadimos al reporte
-        if (reportDataFromModal.fotos && reportDataFromModal.fotos.length > 0) {
-          // FormData no puede tomar un array directamente, así que lo hacemos uno por uno
-          reportDataFromModal.fotos.forEach(fotoUrl => {
-              formData.append('fotos[]', fotoUrl); 
-          });
-        }
-
-        // 1. Crear el nuevo reporte USANDO LA FUNCIÓN CORRECTA
         await ReportService.createReportWithImage(formData);
-        
-        // 2. Actualizar el estado de la mascota original
         await PetService.updatePet(reportDataFromModal.mascotaId, { estado: 'perdida' });
-
-        // 3. Refrescar los datos para ver los cambios
         await fetchMisMascotas();
         await fetchMyReports();
         
@@ -387,8 +388,6 @@ const handleReportLost = async (reportDataFromModal) => {
     }
 };
 
-
-
 // --- Lógica de Modales Genéricos y de Usuario ---
 const openGenericReportModal = () => { showGenericReportModal.value = true; };
 const closeGenericReportModal = () => { showGenericReportModal.value = false; Object.assign(genericReport, { tipo: '', nombre: '', especie: '', raza: '', ciudad: '', descripcion: '', recompensa: 0, imagen: null, fechaPerdida: '' }); };
@@ -397,17 +396,15 @@ const handleGenericReportSubmit = async () => {
   isSubmitting.value = true;
   try {
     const formData = new FormData();
-    formData.append('nombre', genericReport.nombre);
-    formData.append('especie', genericReport.especie);
-    formData.append('raza', genericReport.raza);
-    formData.append('tipo', genericReport.tipo);
-    formData.append('descripcion', genericReport.descripcion);
-    formData.append('ciudad', genericReport.ciudad);
-    formData.append('recompensa', genericReport.recompensa || 0);
-    if (genericReport.imagen) formData.append('imagen', genericReport.imagen);
-    if (genericReport.tipo === 'perdida' && genericReport.fechaPerdida) formData.append('fechaPerdida', genericReport.fechaPerdida);
+    Object.keys(genericReport).forEach(key => {
+      if(key === 'imagen' && genericReport[key]){
+        formData.append('imagen', genericReport.imagen);
+      } else if (genericReport[key] !== null) {
+        formData.append(key, genericReport[key]);
+      }
+    });
 
-    await ReportService.createReportWithImage(formData); // Necesitarás este servicio
+    await ReportService.createReportWithImage(formData);
     await fetchMyReports();
     closeGenericReportModal();
     Swal.fire('Éxito', '¡Reporte creado con éxito!', 'success');
@@ -450,49 +447,31 @@ const closeImageViewer = () => { showImageViewer.value = false; };
 // --- Lógica de Perfil de Usuario ---
 const openProfileModal = () => {
   if (!user.value) return;
-  // Pre-llena el formulario con los datos actuales del usuario
-  Object.assign(profileForm, {
-    nombre: user.value.nombre,
-    telefono: user.value.telefono || '',
-    ciudad: user.value.ciudad || '', 
-    direccionDetallada: user.value.direccionDetallada || '',
-    fotoPerfil: user.value.fotoPerfil || ''
-  });
+  Object.assign(profileForm, { ...user.value });
   profileImagePreviewUrl.value = user.value.fotoPerfil || '';
   profileImageFile.value = null;
   modalError.value = '';
   showProfileModal.value = true;
 };
 
-const closeProfileModal = () => {
-  showProfileModal.value = false;
-};
+const closeProfileModal = () => { showProfileModal.value = false; };
 
 const handleUpdateProfile = async (profileDataFromModal) => {
   isSubmitting.value = true;
   modalError.value = '';
   try {
-    let payload = {
-      nombre: profileDataFromModal.nombre,
-      telefono: profileDataFromModal.telefono,
-      ciudad: profileDataFromModal.ciudad,
-      direccionDetallada: profileDataFromModal.direccionDetallada,
-    };
+    let payload = { ...profileDataFromModal };
 
-    // Si se seleccionó una nueva imagen de perfil, súbela primero
     if (profileImageFile.value) {
-      // Reutilizamos el servicio de subida, asegúrate que existe y funciona
       const res = await PetService.uploadPetImage(profileImageFile.value); 
       payload.fotoPerfil = res.data.secure_url;
     }
 
-    // Llama al servicio para actualizar el perfil en el backend
     const response = await AuthService.updateProfile(payload);
-
-  
-    const updatedUser = { ...authStore.user, user: response.data.user };
-    authStore.login(updatedUser);
+    
+    // Actualizar el estado local y el store
     user.value = response.data.user;
+    authStore.setUser(response.data.user);
 
     closeProfileModal();
     Swal.fire('¡Éxito!', 'Tu perfil ha sido actualizado.', 'success');
@@ -506,18 +485,14 @@ const handleUpdateProfile = async (profileDataFromModal) => {
 };
 
 // --- Lógica de Manejo de Imágenes y Misceláneos ---
-
-// Maneja la selección de un nuevo archivo para la foto de perfil
 const handleProfileImageSelection = (event) => {
   const file = event.target.files[0];
   if (file) {
     profileImageFile.value = file;
-    // Crea una URL local para la vista previa instantánea
     profileImagePreviewUrl.value = URL.createObjectURL(file);
   }
 };
 
-// Maneja la selección de imagen para modales genéricos (como el de mascotas)
 const handleImageSelection = (event) => {
   const file = event.target.files[0];
   if (file) {
@@ -526,19 +501,18 @@ const handleImageSelection = (event) => {
   }
 };
 
-// Formatea la fecha de registro del usuario para mostrarla
 const formattedJoinDate = computed(() => 
   user.value?.fechaRegistro 
     ? new Date(user.value.fechaRegistro).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) 
     : ''
 );
 
-// Cierra la sesión del usuario y lo redirige a la página de login
 const logout = () => {
   authStore.logout();
   router.push('/loginregister');
 };
 </script>
+
 
 <style scoped>
 /* ESTILOS COMPLETOS Y CORREGIDOS PARA TARJETAS Y MODALES */
@@ -607,7 +581,7 @@ const logout = () => {
 :deep(.error-message) { color: #c62828; margin-top: 15px; text-align: center; }
 :deep(.modal-overlay.image-viewer) { background-color: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; cursor: zoom-out; }
 :deep(.image-viewer-content) { position: relative; }
-:deep(.image-viewer-content img) { display: block; max-width: 90vw; max-height: 90vh; width: auto; height: auto; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); cursor: default; }
+:deep(.image-viewer-content img) { display: block; max-width: 90vw; max-h: 90vh; width: auto; height: auto; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); cursor: default; }
 :deep(.image-viewer-content .close-button) { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 50%; background-color: rgba(0, 0, 0, 0.5); color: white; border: 2px solid white; font-size: 1.8rem; line-height: 36px; text-align: center; cursor: pointer; transition: transform 0.2s, background-color 0.2s; }
 :deep(.image-viewer-content .close-button:hover) { transform: scale(1.1); background-color: rgba(200, 0, 0, 0.8); }
 </style>

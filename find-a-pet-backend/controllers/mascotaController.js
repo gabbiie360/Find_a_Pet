@@ -190,3 +190,29 @@ exports.obtenerMascotasFiltradas = async (req, res) => {
   }
 };
 
+exports.eliminarMascota = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const mascota = await Mascota.findById(id);
+
+    // Verificación 1: Que la mascota exista
+    if (!mascota) {
+      return res.status(404).json({ msg: 'Mascota no encontrada' });
+    }
+
+    // Verificación 2: Que la mascota pertenezca al usuario que hace la petición
+    if (mascota.propietarioId.toString() !== req.user.id) {
+      return res.status(403).json({ msg: 'No autorizado para eliminar esta mascota' });
+    }
+
+    // Si todo está bien, eliminamos la mascota
+    await Mascota.findByIdAndDelete(id);
+
+    res.status(200).json({ msg: 'Mascota eliminada exitosamente' });
+
+  } catch (err) {
+    console.error('ERROR AL ELIMINAR MASCOTA:', err);
+    res.status(500).json({ msg: 'Error del servidor al eliminar la mascota' });
+  }
+};
+

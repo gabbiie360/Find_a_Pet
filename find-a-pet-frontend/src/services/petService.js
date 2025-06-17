@@ -14,6 +14,12 @@ class PetService {
     return apiClient.put(`/mascotas/${petId}`, petData);
   }
 
+  // --- MÉTODO NUEVO PARA ELIMINAR ---
+  // Este método recibirá el ID de la mascota y hará la petición DELETE a la ruta que creamos.
+  deletePet(petId) {
+    return apiClient.delete(`/mascotas/${petId}`);
+  }
+
   reportAsLost(petId, reportData) {
     return apiClient.put(`/mascotas/${petId}/reportar`, reportData);
   }

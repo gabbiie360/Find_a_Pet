@@ -6,6 +6,7 @@ const verifyToken = require('../middleware/verifyToken');
 const {
   crearMascota,
   obtenerMisMascotas,
+  eliminarMascota,
   reportarMascotaPerdida,
   actualizarMascota,
   marcarComoEncontrada,
@@ -46,5 +47,8 @@ router.get('/perdidas', obtenerMascotasPerdidas);
 router.get('/recientes', getRecentReports);
 
 router.get('/filtradas', obtenerMascotasFiltradas);
+
+// DELETE /api/mascotas/:id
+router.delete('/:id', verifyToken, eliminarMascota);
 
 module.exports = router;
