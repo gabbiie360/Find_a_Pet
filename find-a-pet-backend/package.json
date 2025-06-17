@@ -12,8 +12,7 @@
     "multer": "^2.0.1",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^7.0.3",
-    "qrcode": "^1.5.4",
-    "sweetalert2": "^11.22.0"
+    "qrcode": "^1.5.4"
   },
   "scripts": {
     "dev": "nodemon server.js",
