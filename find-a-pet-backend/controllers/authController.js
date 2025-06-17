@@ -75,7 +75,7 @@ const resetPassword = async (req, res) => {
 // REGISTRO
 const registerUser = async (req, res) => {
   try {
-    const { nombre, email, telefono, ciudad, password } = req.body;
+    const { nombre, email, telefono, ciudad, pais, password } = req.body;
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ msg: 'Este correo ya está registrado' });
 
@@ -85,6 +85,7 @@ const registerUser = async (req, res) => {
       email,
       telefono,
       ciudad,
+      pais,
       password: hashedPassword
     });
 
