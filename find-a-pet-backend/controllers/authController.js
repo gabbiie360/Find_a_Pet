@@ -2,53 +2,70 @@ const User = require('../models/User');
 const Report = require('../models/Report');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-
-// Controlador para manejar el restablecimiento de contraseña
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
+// --- CORREGIDO USANDO LA OPCIÓN 2 ---
 const forgotPassword = async (req, res) => {
-  const { email } = req.body;
-  const user = await User.findOne({ email });
-  if (!user) return res.status(404).json({ msg: 'Correo no registrado' });
-
-  const token = crypto.randomBytes(32).toString('hex');
-  user.resetPasswordToken = token;
-  user.resetPasswordExpires = Date.now() + 3600000; // 1 hora
-  await user.save();
-
-  const resetLink = `http://localhost:5173/reset-password/${token}`;
-
-  const transporter = nodemailer.createTransport({
-  host: 'mail.spacemail.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_FROM,
-    pass: process.env.EMAIL_PASS  
-  }
-});
-
-
-  const mailOptions = {
-    from: process.env.EMAIL_FROM,
-    to: user.email,
-    subject: 'Restablecimiento de contraseña',
-    html: `<p>Hola ${user.nombre},</p>
-           <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
-           <a href="${resetLink}">${resetLink}</a>
-           <p>Si no solicitaste este cambio, ignora este mensaje.</p>`
-  };
-
   try {
-    console.log("Intentando enviar correo desde:", process.env.EMAIL_FROM);
-    console.log("Hacia:", user.email);
+    const { email } = req.body;
+    
+    // 1. Buscamos al usuario para obtener sus datos y verificar si existe.
+    const user = await User.findOne({ email });
 
+    // 2. Si el usuario no existe, enviamos una respuesta genérica por seguridad.
+    //    Esto evita que alguien pueda usar este formulario para adivinar qué correos están registrados.
+    if (!user) {
+      return res.status(200).json({ msg: 'Si su correo está registrado, recibirá un enlace para restablecer la contraseña.' });
+    }
+
+    // 3. Generamos el token y la fecha de expiración.
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = Date.now() + 3600000; // 1 hora
+
+    // 4. Actualizamos SOLO los campos necesarios usando updateOne.
+    //    Esto evita que Mongoose valide todo el documento y falle por el campo 'pais'.
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { resetPasswordToken: token, resetPasswordExpires: expires } }
+    );
+
+    // 5. Configuramos el enlace y el transportador de correo.
+    const resetLink = `http://localhost:5173/reset-password/${token}`;
+
+    const transporter = nodemailer.createTransport({
+      // ¡¡¡IMPORTANTE!!! Reemplaza esto con los datos de tu proveedor de correo.
+      host: 'mail.spacemail.com', 
+      port: 465, // o 587 si usas STARTTLS
+      secure: true, // true para 465, false para 587
+      auth: {
+        user: process.env.EMAIL_FROM,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    // 6. Creamos las opciones del correo usando los datos del usuario que encontramos.
+    const mailOptions = {
+      from: `"Find a Pet" <${process.env.EMAIL_FROM}>`,
+      to: user.email,
+      subject: 'Restablecimiento de contraseña para Find a Pet',
+      html: `<p>Hola ${user.nombre},</p>
+             <p>Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para continuar:</p>
+             <a href="${resetLink}">${resetLink}</a>
+             <p>Este enlace expirará en 1 hora.</p>
+             <p>Si no solicitaste este cambio, puedes ignorar este mensaje.</p>`
+    };
+
+    // 7. Intentamos enviar el correo.
     await transporter.sendMail(mailOptions);
-    res.status(200).json({ msg: 'Correo enviado para restablecer contraseña' });
+    
+    // 8. Si todo sale bien, enviamos la misma respuesta genérica.
+    res.status(200).json({ msg: 'Si su correo está registrado, recibirá un enlace para restablecer la contraseña.' });
+
   } catch (error) {
-    console.error('Error al enviar correo:', error);
-    res.status(500).json({ msg: 'Error al enviar el correo.' });
+    // Si algo falla (la base de datos, el envío de correo), capturamos el error.
+    console.error('❌ Error en el proceso de forgotPassword:', error);
+    res.status(500).json({ msg: 'Ocurrió un error en el servidor. Inténtalo más tarde.' });
   }
 };
 
@@ -72,6 +89,7 @@ const resetPassword = async (req, res) => {
 
   res.status(200).json({ msg: 'Contraseña actualizada correctamente' });
 };
+
 // REGISTRO
 const registerUser = async (req, res) => {
   try {
@@ -144,21 +162,18 @@ const getUserProfile = async (req, res) => {
   }
 };
 
-// --- ACTUALIZAR PERFIL (COMPLETAMENTE CORREGIDO) ---
+// ACTUALIZAR PERFIL
 const updateUserProfile = async (req, res) => {
   try {
-    // Campos que permitimos actualizar desde el formulario
     const { nombre, telefono, direccionDetallada, fotoPerfil } = req.body;
     
     const updateData = {};
 
-    // Construimos el objeto de actualización solo con los campos que se enviaron
     if (nombre) updateData.nombre = nombre;
     if (telefono) updateData.telefono = telefono;
     if (direccionDetallada) updateData.direccionDetallada = direccionDetallada;
     if (fotoPerfil) updateData.fotoPerfil = fotoPerfil;
     
-    // Actualizamos el documento en la base de datos y pedimos que nos devuelva la nueva versión
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
       { $set: updateData },
@@ -181,7 +196,7 @@ const updateUserProfile = async (req, res) => {
 };
 
 
-// --- EXPORTAMOS TODAS LAS FUNCIONES JUNTAS AL FINAL ---
+// EXPORTAMOS TODAS LAS FUNCIONES
 module.exports = {
   registerUser,
   loginUser,

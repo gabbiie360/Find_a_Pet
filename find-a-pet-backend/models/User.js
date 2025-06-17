@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema({
   },
   pais: {
     type: String,
-    required: true
+    required: false
   },
   // --- NUEVO CAMPO AÑADIDO ---
   direccionDetallada: {

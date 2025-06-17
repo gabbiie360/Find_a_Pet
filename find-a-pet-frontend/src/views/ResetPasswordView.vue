@@ -45,7 +45,7 @@ const handleReset = async () => {
     const token = route.params.token;
     const response = await axios.post(`http://localhost:5000/api/auth/reset-password/${token}`, { password: password.value });
     message.value = response.data.msg;
-    setTimeout(() => router.push('/loginregister'), 2000);
+    setTimeout(() => router.push('/login'), 2000);
   } catch (err) {
     error.value = err.response?.data?.msg || 'Error al restablecer la contraseña.';
   } finally {
