@@ -8,6 +8,7 @@ const {
   getAllReports,
   getMyReports,
   updateReport,
+  resolveReport,
   deleteReport
 } = require('../controllers/reportController');
 
@@ -22,5 +23,6 @@ router.get('/', getAllReports);
 router.get('/mine', verifyToken, getMyReports);
 router.put('/:id', verifyToken, updateReport);
 router.delete('/:id', verifyToken, deleteReport);
+router.put('/:reportId/resolve', verifyToken, resolveReport);
 
 module.exports = router;

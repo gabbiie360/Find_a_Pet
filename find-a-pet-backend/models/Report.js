@@ -25,7 +25,7 @@ const reportSchema = new mongoose.Schema({
   // --- Campos del Reporte ---
   tipo: { 
     type: String,
-    enum: ['perdida', 'encontrada', 'adopcion'],
+    enum: ['perdida', 'encontrada', 'adopcion', 'resuelto'],
     required: true
   },
   descripcion: {

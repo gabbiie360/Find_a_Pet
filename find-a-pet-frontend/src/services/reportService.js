@@ -37,6 +37,11 @@ class ReportService {
   deleteReport(reportId) {
     return apiClient.delete(`/reports/${reportId}`);
   }
-}
 
+
+ resolveReport(reportId) {
+    // Llama a la nueva ruta que creamos en el backend
+    return apiClient.put(`/reports/${reportId}/resolve`);
+  }
+}
 export default new ReportService();

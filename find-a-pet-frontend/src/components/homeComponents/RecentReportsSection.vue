@@ -18,7 +18,7 @@
             <!-- Mostramos la fecha de creación del reporte, que es más precisa -->
             <p class="report-date">📅 Reportado el {{ formatDate(reporte.createdAt) }}</p>
             <!-- El enlace ahora lleva a la página de búsqueda para una mejor UX -->
-            <router-link to="/buscar-mascotas" class="btn-more">Ver Detalles</router-link>
+            <router-link to="/reports" class="btn-more">Ver Detalles</router-link>
           </div>
         </div>
       </div>

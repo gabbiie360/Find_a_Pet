@@ -1,6 +1,7 @@
 const Report = require('../models/Report');
 const { storage, cloudinary } = require('../config/cloudinary'); // Asumiendo que está en config
 const { Readable } = require('stream');
+const Mascota = require('../models/Mascota');
 
 // Función helper para subir a Cloudinary desde un buffer
 const uploadToCloudinary = (buffer) => {
@@ -161,8 +162,48 @@ const deleteReport = async (req, res) => {
   }
 };
 
+const resolveReport = async (req, res) => {
+  try {
+    const { reportId } = req.params;
+    const report = await Report.findById(reportId);
+
+    if (!report) {
+      return res.status(404).json({ msg: 'Reporte no encontrado.' });
+    }
+
+    // Verificar que el usuario es el dueño del reporte
+    if (report.creadoPor.toString() !== req.user.id) {
+      return res.status(403).json({ msg: 'No autorizado para modificar este reporte.' });
+    }
+
+    // 1. Actualizar el estado del reporte. Lo cambiamos a 'resuelto'.
+    //    Esto lo sacará de las listas de búsqueda activas.
+    report.tipo = 'resuelto'; // O 'encontrada-resuelta', como prefieras.
+    await report.save();
+
+    // 2. Si el reporte está vinculado a una mascota original, la actualizamos.
+    if (report.mascotaOriginalId) {
+      await Mascota.findByIdAndUpdate(report.mascotaOriginalId, {
+        $set: {
+          estado: 'en-casa', // La mascota vuelve a casa
+          fechaEncontrada: new Date(),
+          fechaPerdida: null, // Limpiamos la fecha de pérdida
+          ultimaUbicacion: undefined,
+        }
+      });
+    }
+
+    res.status(200).json({ msg: 'Reporte resuelto y mascota actualizada.' });
+
+  } catch (error) {
+    console.error('Error al resolver el reporte:', error);
+    res.status(500).json({ msg: 'Error del servidor al resolver el reporte.' });
+  }
+};
+
 module.exports = {
   createReport,
+  resolveReport,
   getAllReports,
   getMyReports,
   updateReport,

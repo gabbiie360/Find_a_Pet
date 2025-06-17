@@ -41,7 +41,7 @@
           @deleteReport="deleteReport"
           @openQrModal="openQrModal"
           @openReportDetailsModal="openReportDetailsModal"
-          @handleMarkAsFound="handleMarkAsFound"
+          @handleMarkAsFound="handleResolveReport"
         />
       </main>
     </div>
@@ -338,13 +338,39 @@ const deleteReport = async (reportId) => {
   }
 };
 
-const handleMarkAsFound = async (petId) => {
-  try {
-    await PetService.markAsFound(petId);
-    await fetchMisMascotas();
-    await fetchMyReports();
-  } catch (err) { console.error("Error marcando como encontrada", err); }
+const handleResolveReport = async (report) => {
+  if (!report || !report._id) return;
+  
+  const result = await Swal.fire({
+    title: `¿Confirmar que ${report.nombre} fue encontrada?`,
+    text: "El reporte se marcará como resuelto y la mascota volverá al estado 'En Casa'.",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, fue encontrada',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#28a745'
+  });
+
+  if (result.isConfirmed) {
+    try {
+      // 1. Usamos el nuevo método del servicio de reportes
+      await ReportService.resolveReport(report._id);
+      
+      // 2. Refrescamos los datos de la UI para ver los cambios al instante
+      //    Esto hará que el reporte desaparezca de "Activos" y que el estado
+      //    de la mascota en "Mis Mascotas" cambie a "En Casa".
+      await fetchMyReports();
+      await fetchMisMascotas();
+
+      Swal.fire('¡Genial!', `${report.nombre} ha sido marcada como encontrada.`, 'success');
+
+    } catch (err) {
+      console.error("Error al marcar como encontrada:", err);
+      Swal.fire('Error', 'No se pudo actualizar el estado. Inténtalo de nuevo.', 'error');
+    }
+  }
 };
+
 
 const openReportModal = (mascota) => {
   selectedPet.value = mascota;

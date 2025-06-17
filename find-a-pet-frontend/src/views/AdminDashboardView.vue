@@ -128,7 +128,7 @@
           <input type="text" v-model="adminPetForm.raza" placeholder="Raza">
           <textarea v-model="adminPetForm.descripcion" placeholder="Descripción" required></textarea>
           <select v-model="adminPetForm.estado">
-            <option value="en casa">En Casa</option>
+            <option value="en-casa">En-Casa</option>
             <option value="perdida">Perdida</option>
             <option value="encontrada">Encontrada</option>
             <option value="adopcion">En Adopción</option>
@@ -183,7 +183,7 @@ const showAdminPetModal = ref(false);
 const isEditingPet = ref(false);
 const adminPetForm = reactive({
   _id: null, nombre: '', especie: '', raza: '', descripcion: '', 
-  estado: 'en casa', propietarioId: null
+  estado: 'en-casa', propietarioId: null
 });
 
 // --- CARGA INICIAL DE DATOS ---
@@ -283,7 +283,7 @@ const openAdminPetModal = (pet) => {
     Object.assign(adminPetForm, { ...pet, propietarioId: pet.propietarioId?._id });
   } else {
     isEditingPet.value = false;
-    Object.assign(adminPetForm, { _id: null, nombre: '', especie: '', raza: '', descripcion: '', estado: 'en casa', propietarioId: null });
+    Object.assign(adminPetForm, { _id: null, nombre: '', especie: '', raza: '', descripcion: '', estado: 'en-casa', propietarioId: null });
   }
   showAdminPetModal.value = true;
 };
