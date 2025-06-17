@@ -1,61 +1,22 @@
-// frontend/services/petService.js
-import apiClient from './api'; // Importamos nuestro cliente de API centralizado
+import apiClient from './api';
 
 class PetService {
-  getMyPets() {
-    return apiClient.get('/mascotas');
-  }
+  // --- CRUD para Mascotas/Reportes ---
+  addPet(petData) { return apiClient.post('/mascotas', petData); }
+  updatePet(petId, petData) { return apiClient.put(`/mascotas/${petId}`, petData); }
+  deletePet(petId) { return apiClient.delete(`/mascotas/${petId}`); }
 
-  addPet(petData) {
-    return apiClient.post('/mascotas', petData);
-  }
+  // --- OBTENER DATOS ---
+  getMyPets() { return apiClient.get('/mascotas/mine'); }
+  getPetQrCode(petId) { return apiClient.get(`/mascotas/${petId}/qr`); }
 
-  updatePet(petId, petData) {
-    return apiClient.put(`/mascotas/${petId}`, petData);
-  }
-
-  reportAsLost(petId, reportData) {
-    return apiClient.put(`/mascotas/${petId}/reportar`, reportData);
-  }
-
-  markAsFound(petId) {
-    return apiClient.put(`/mascotas/${petId}/encontrada`);
-  }
-
-  getPetQrCode(petId) {
-    return apiClient.get(`/mascotas/${petId}/qr`);
-  }
-
-  getLostPets(filters) {
-    return apiClient.get('/mascotas/perdidas', { params: filters });
-  }
-
+  // --- SUBIDA DE IMAGEN ---
   uploadPetImage(imageFile) {
     const formData = new FormData();
     formData.append('image', imageFile);
     return apiClient.post('/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
   }
-
-  // Obtener mascotas reportadas en los últimos 7 días
-  getRecentReports() {
-    return apiClient.get('/mascotas/recientes');
-  }
-
-  getPetsByStatus(status) {
-    return apiClient.get('/mascotas', {
-      params: { estado: status }
-    });
-  }
-
-  // Nuevo: Obtener mascotas con filtros combinados (especie, ciudad, estado)
- getFilteredPets(filters) {
-  return apiClient.get('/mascotas/filtradas', { params: filters });
 }
-
-}
-
 export default new PetService();

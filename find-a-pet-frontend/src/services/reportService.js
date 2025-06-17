@@ -1,38 +1,19 @@
-// frontend/services/reportService.js
 import apiClient from './api';
 
 class ReportService {
-  // Crear reporte simple sin imagen (usado en ProfileView.vue)
-  createGenericReport(reportData) {
-    return apiClient.post('/reports', reportData);
-  }
-
-  // Crear reporte con imagen (formulario con imagen subida)
-  createReportWithImage(formData) {
-    return apiClient.post('/reports/create', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  }
-
-  // Obtener todos los reportes públicos
-  getAllReports() {
-    return apiClient.get('/reports');
-  }
-
-  // Obtener los reportes del usuario logueado
+  // Obtiene los reportes del usuario logueado (mascotas que NO están 'en-casa')
   getMyReports() {
-    return apiClient.get('/reports/mine');
+    return apiClient.get('/mascotas/my-reports');
   }
 
-  // Actualizar reporte existente
-  updateReport(reportId, data) {
-    return apiClient.put(`/reports/${reportId}`, data);
+  // Obtiene TODOS los reportes públicos para la página /reports con filtros
+  getAllPublicReports(filters = {}) {
+    return apiClient.get('/mascotas/public', { params: filters });
   }
 
-  // Eliminar reporte
-  deleteReport(reportId) {
-    return apiClient.delete(`/reports/${reportId}`);
+  // Obtiene los detalles de un reporte/mascota público por su ID
+  getPublicReportById(reportId) {
+    return apiClient.get(`/mascotas/${reportId}/public`);
   }
 }
-
 export default new ReportService();
