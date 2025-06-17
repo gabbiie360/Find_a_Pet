@@ -1,10 +1,52 @@
 const Report = require('../models/Report');
+const { storage, cloudinary } = require('../config/cloudinary'); // Asumiendo que está en config
+const { Readable } = require('stream');
 
-// --- CREAR UN NUEVO REPORTE (CORREGIDO) ---
+// Función helper para subir a Cloudinary desde un buffer
+const uploadToCloudinary = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: 'findapet' }, // Tu carpeta en Cloudinary
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+    // Convertimos el buffer a un stream legible
+    Readable.from(buffer).pipe(stream);
+  });
+};
+
+// --- CREAR UN NUEVO REPORTE (AHORA CON LÓGICA DE UPLOAD) ---
 const createReport = async (req, res) => {
   try {
-    // Tomamos todos los campos del body y añadimos el ID del usuario
-    const reportData = { ...req.body, creadoPor: req.user.id };
+    const { tipo, descripcion, ciudad, nombre, especie, raza, recompensa, fechaPerdida, ultimaUbicacionTexto, latitud, longitud, mascotaOriginalId } = req.body;
+    
+    let imageUrl = '';
+    // Si se subió un archivo, lo procesamos
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer);
+      imageUrl = result.secure_url;
+    }
+
+    const reportData = {
+      ...req.body,
+      fotos: imageUrl ? [imageUrl] : [],
+      recompensa: Number(recompensa) || 0,
+      creadoPor: req.user.id,
+    };
+    
+    // Limpieza y estructuración de datos
+    if (tipo === 'perdida' && fechaPerdida) {
+      reportData.fechaPerdida = new Date(fechaPerdida);
+    }
+
+    if (ultimaUbicacionTexto || (latitud && longitud)) {
+      reportData.ultimaUbicacion = {
+        texto: ultimaUbicacionTexto,
+        coordinates: (latitud && longitud) ? [parseFloat(longitud), parseFloat(latitud)] : undefined
+      };
+    }
 
     const newReport = new Report(reportData);
     await newReport.save();
@@ -13,13 +55,13 @@ const createReport = async (req, res) => {
 
   } catch (err) {
     console.error("Error en createReport:", err);
-    // Manejo de errores de validación de Mongoose
     if (err.name === 'ValidationError') {
       return res.status(400).json({ msg: 'Datos inválidos', errors: err.errors });
     }
     res.status(500).json({ msg: 'Error del servidor al crear el reporte' });
   }
 };
+
 
 // --- OBTENER TODOS LOS REPORTES PÚBLICOS (SIN CAMBIOS) ---
 const getAllReports = async (req, res) => {
