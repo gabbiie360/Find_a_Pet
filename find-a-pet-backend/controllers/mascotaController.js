@@ -84,7 +84,7 @@ exports.marcarComoEncontrada = async (req, res) => {
     if (mascota.propietarioId.toString() !== req.user.id) {
       return res.status(403).json({ msg: 'No autorizado' });
     }
-    mascota.estado = 'en casa';
+    mascota.estado = 'en-casa';
     mascota.fechaPerdida = null;
     mascota.fechaEncontrada = new Date();
     mascota.ultimaUbicacion = undefined;
