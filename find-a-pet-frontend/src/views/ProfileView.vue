@@ -361,6 +361,17 @@ const handleReportLost = async (reportDataFromModal) => {
     modalError.value = '';
     try {
         const formData = new FormData();
+        
+        // --- AQUÍ ESTÁ LA LÓGICA CLAVE ---
+        // Buscamos la mascota completa en nuestro array local para obtener su foto.
+        const mascotaOriginal = mascotas.value.find(p => p._id === reportDataFromModal.mascotaId);
+        
+        // Si la mascota existe y tiene fotos, añadimos la primera foto al FormData
+        // bajo el nombre 'fotoExistenteUrl', que el backend ahora espera.
+        if (mascotaOriginal && mascotaOriginal.fotos && mascotaOriginal.fotos.length > 0) {
+            formData.append('fotoExistenteUrl', mascotaOriginal.fotos[0]);
+        }
+        // --- FIN DEL CAMBIO ---
         formData.append('nombre', reportDataFromModal.nombre);
         formData.append('especie', reportDataFromModal.especie);
         formData.append('raza', reportDataFromModal.raza);
@@ -372,8 +383,12 @@ const handleReportLost = async (reportDataFromModal) => {
         formData.append('ultimaUbicacionTexto', reportDataFromModal.ultimaUbicacion.texto);
         formData.append('mascotaOriginalId', reportDataFromModal.mascotaId);
 
-        await ReportService.createReportWithImage(formData);
+        await ReportService.createReport(formData); 
+        
+        // Actualizar el estado de la mascota original a 'perdida'
         await PetService.updatePet(reportDataFromModal.mascotaId, { estado: 'perdida' });
+
+        // Refrescar los datos de la UI para ver los cambios al instante
         await fetchMisMascotas();
         await fetchMyReports();
         
@@ -382,7 +397,7 @@ const handleReportLost = async (reportDataFromModal) => {
 
     } catch(err) {
         console.error("Error al reportar mascota como perdida:", err);
-        modalError.value = 'Error al generar el reporte.';
+        modalError.value = 'Error al generar el reporte. Por favor, inténtelo de nuevo.';
     } finally {
         isSubmitting.value = false;
     }

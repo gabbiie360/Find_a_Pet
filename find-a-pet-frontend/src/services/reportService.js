@@ -3,10 +3,14 @@ import apiClient from './api';
 
 class ReportService {
   // Crear reporte simple sin imagen (usado en ProfileView.vue)
-  createGenericReport(reportData) {
-    return apiClient.post('/reports', reportData);
+ createReport(formData) {
+    return apiClient.post('/reports', formData, { // La ruta es POST /api/reports/
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
   }
-
+  // --- FIN DEL MÉTODO NUEVO ---
   // Crear reporte con imagen (formulario con imagen subida)
   createReportWithImage(formData) {
     return apiClient.post('/reports/create', formData, {

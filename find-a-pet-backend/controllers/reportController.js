@@ -20,27 +20,41 @@ const uploadToCloudinary = (buffer) => {
 // --- CREAR UN NUEVO REPORTE (AHORA CON LÓGICA DE UPLOAD) ---
 const createReport = async (req, res) => {
   try {
-    const { tipo, descripcion, ciudad, nombre, especie, raza, recompensa, fechaPerdida, ultimaUbicacionTexto, latitud, longitud, mascotaOriginalId } = req.body;
-    
+    // 1. Extraemos todos los datos, incluyendo la posible URL de una foto existente.
+    const { tipo, descripcion, ciudad, nombre, especie, raza, recompensa, fechaPerdida, ultimaUbicacionTexto, latitud, longitud, fotoExistenteUrl, mascotaOriginalId } = req.body;
+
     let imageUrl = '';
-    // Si se subió un archivo, lo procesamos
+
+    // 2. Lógica de la imagen:
+    //    - Si se sube un nuevo archivo, tiene prioridad.
     if (req.file) {
       const result = await uploadToCloudinary(req.file.buffer);
       imageUrl = result.secure_url;
+    } 
+    //    - Si no hay archivo nuevo, pero se envió una URL existente, la usamos.
+    else if (fotoExistenteUrl) {
+      imageUrl = fotoExistenteUrl;
     }
 
+    // 3. Construimos el objeto del reporte con todos los datos.
     const reportData = {
-      ...req.body,
-      fotos: imageUrl ? [imageUrl] : [],
+      nombre,
+      especie,
+      raza,
+      tipo,
+      descripcion,
+      ciudad,
       recompensa: Number(recompensa) || 0,
+      fotos: imageUrl ? [imageUrl] : [], // Guardamos la imagen en el array de fotos
       creadoPor: req.user.id,
+      mascotaOriginalId: mascotaOriginalId || null,
     };
-    
-    // Limpieza y estructuración de datos
+
+    // 4. Añadimos campos condicionales
     if (tipo === 'perdida' && fechaPerdida) {
       reportData.fechaPerdida = new Date(fechaPerdida);
     }
-
+    
     if (ultimaUbicacionTexto || (latitud && longitud)) {
       reportData.ultimaUbicacion = {
         texto: ultimaUbicacionTexto,
@@ -48,6 +62,7 @@ const createReport = async (req, res) => {
       };
     }
 
+    // 5. Creamos y guardamos el nuevo reporte.
     const newReport = new Report(reportData);
     await newReport.save();
     
@@ -61,6 +76,7 @@ const createReport = async (req, res) => {
     res.status(500).json({ msg: 'Error del servidor al crear el reporte' });
   }
 };
+
 
 
 // --- OBTENER TODOS LOS REPORTES PÚBLICOS (SIN CAMBIOS) ---

@@ -1,5 +1,6 @@
 // backend/controllers/mascotaController.js
 const Mascota = require('../models/Mascota');
+const Report = require('../models/Report');
 const qrcode = require('qrcode');
 
 // Crear una nueva mascota
@@ -149,12 +150,18 @@ exports.getRecentReports = async (req, res) => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const recientes = await Mascota.find({
-      estado: 'perdida',
-      fechaPerdida: { $gte: sevenDaysAgo }
-    }).sort({ fechaPerdida: -1 }).limit(10);
+    // 1. Buscamos en la colección de 'Report', no de 'Mascota'.
+    // 2. Filtramos por tipo: 'perdida' para mostrar solo esos en la home.
+    // 3. Usamos 'createdAt' para encontrar los reportes creados recientemente.
+    const recientes = await Report.find({
+      tipo: 'perdida',
+      createdAt: { $gte: sevenDaysAgo }
+    })
+    .sort({ createdAt: -1 }) // Ordenamos por fecha de creación descendente
+    .limit(8); // Mostramos un máximo de 8 reportes
 
     res.status(200).json(recientes);
+
   } catch (err) {
     console.error('ERROR AL OBTENER REPORTES RECIENTES:', err);
     res.status(500).json({ msg: 'Error al obtener reportes recientes' });

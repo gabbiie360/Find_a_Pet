@@ -5,15 +5,20 @@
       <p class="section-subtitle" v-fade-in-on-scroll>Conocé las mascotas reportadas recientemente y ayudá a encontrarlas.</p>
 
       <div v-if="loading" class="loading-msg">Cargando reportes...</div>
-      <div v-else-if="reports.length === 0" class="empty-msg">No hay reportes en los últimos 7 días.</div>
+      <div v-else-if="reports.length === 0" class="empty-msg">No hay reportes de mascotas perdidas en los últimos 7 días.</div>
+      
+      <!-- Bloque corregido para mostrar los reportes -->
       <div v-else class="reports-grid">
         <div v-for="reporte in reports" :key="reporte._id" class="report-card" v-fade-in-on-scroll>
-          <img :src="reporte.fotos[0] || placeholderImage" alt="Mascota" class="report-image" />
+          <!-- Usamos la primera foto del reporte, o la imagen de placeholder -->
+          <img :src="reporte.fotos[0] || placeholderImage" alt="Foto de la mascota" class="report-image" />
           <div class="report-info">
             <h3>{{ reporte.nombre }}</h3>
             <p>{{ reporte.ciudad }}</p>
-            <p class="report-date">📅 {{ formatDate(reporte.fechaPerdida) }}</p>
-            <router-link :to="`/pet/${reporte._id}`" class="btn-more">Ver más</router-link>
+            <!-- Mostramos la fecha de creación del reporte, que es más precisa -->
+            <p class="report-date">📅 Reportado el {{ formatDate(reporte.createdAt) }}</p>
+            <!-- El enlace ahora lleva a la página de búsqueda para una mejor UX -->
+            <router-link to="/buscar-mascotas" class="btn-more">Ver Detalles</router-link>
           </div>
         </div>
       </div>
@@ -29,28 +34,36 @@ import placeholderImage from '@/assets/placeholder-pet.png'
 const reports = ref([])
 const loading = ref(true)
 
+// Función para formatear la fecha, sigue siendo útil
 const formatDate = (dateStr) => {
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 onMounted(async () => {
   try {
-    const response = await PetService.getRecentReports() // <-- tu endpoint backend
-    reports.value = response.data
+    // La llamada al servicio sigue siendo la misma
+    const response = await PetService.getRecentReports();
+    reports.value = response.data;
   } catch (err) {
-    console.error('Error cargando reportes recientes:', err)
+    console.error('Error cargando reportes recientes:', err);
+    // Opcional: podrías mostrar un mensaje de error en la UI
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 })
 </script>
 
 <style scoped>
 .recent-reports-section {
-  background-color: #fef8ff;
+  background-color: #f8f7fc; /* Un tono lila muy claro */
   padding: 4rem 1rem;
   text-align: center;
+}
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 .section-title {
   font-size: 2.2rem;
@@ -60,68 +73,83 @@ onMounted(async () => {
 .section-subtitle {
   font-size: 1.1rem;
   color: #555;
-  margin-bottom: 2rem;
+  margin-bottom: 3rem; /* Más espacio */
 }
 .reports-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 2rem;
   margin-top: 2rem;
+  text-align: left; /* Alinea el texto de las tarjetas a la izquierda */
 }
 .report-card {
   background: #fff;
   border-radius: 15px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 25px rgba(108, 44, 164, 0.08);
   overflow: hidden;
-  transition: 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid #eee;
 }
 .report-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-8px);
+  box-shadow: 0 12px 30px rgba(108, 44, 164, 0.12);
 }
 .report-image {
   width: 100%;
-  height: 180px;
+  height: 200px; /* Un poco más de altura para la imagen */
   object-fit: cover;
+  background-color: #e0e0e0;
 }
 .report-info {
-  padding: 1rem;
+  padding: 1.2rem;
 }
 .report-info h3 {
-  margin: 0;
-  font-size: 1.3rem;
+  margin: 0 0 0.25rem 0;
+  font-size: 1.4rem;
   color: #333;
 }
 .report-info p {
   margin: 0.3rem 0;
   color: #777;
+  font-size: 1rem;
 }
 .report-date {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  color: #6c2ca4; /* Color temático */
+  font-weight: 500;
 }
 .btn-more {
   display: inline-block;
-  margin-top: 0.7rem;
+  margin-top: 1rem;
   background-color: #b98bff;
   color: white;
-  padding: 8px 16px;
+  padding: 10px 20px;
   border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
   font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+.btn-more:hover {
+  background-color: #a36efd;
 }
 .loading-msg, .empty-msg {
   font-size: 1.1rem;
   color: #777;
   margin-top: 2rem;
+  padding: 2rem;
+  background-color: #fff;
+  border-radius: 12px;
+  border: 1px dashed #ddd;
 }
 
-/* animaciones si usás fade-in */
-.before-visible {
+/* Directiva de animación (si la estás usando) */
+[v-fade-in-on-scroll] {
   opacity: 0;
-  transform: translateY(50px);
-  transition: all 0.8s ease;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
 }
-.visible {
+[v-fade-in-on-scroll].is-visible {
   opacity: 1;
   transform: translateY(0);
 }
