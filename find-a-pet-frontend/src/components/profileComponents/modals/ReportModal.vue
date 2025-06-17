@@ -1,48 +1,70 @@
+<!-- ARCHIVO: ReportModal.vue -->
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-content animate__animated animate__fadeInUp">
-      <h2>{{ isEditing ? 'Editar Reporte' : 'Nuevo Reporte' }}</h2>
-      <form @submit.prevent="$emit('save')">
-        <input v-model="report.nombre" placeholder="Nombre del animal" required />
-        <input v-model="report.especie" placeholder="Especie" required />
-        <input v-model="report.raza" placeholder="Raza" />
-        <input v-model="report.ciudad" placeholder="Ciudad" required />
-        <input v-model="report.descripcion" placeholder="Descripción" required />
-        <input type="number" v-model="report.recompensa" placeholder="Recompensa (opcional)" />
+  <div class="modal-overlay" @click.self="$emit('cancel')">
+    <div class="modal-content">
+      <h2>Reportar a {{ pet.nombre }} como Perdida</h2>
+      <p>Completa los detalles para crear el reporte.</p>
+      
+      <form @submit.prevent="submitReport">
+        
+        <div class="form-group">
+          <label for="fechaPerdida">Fecha en que se perdió</label>
+          <input type="date" id="fechaPerdida" v-model="localReportForm.fechaPerdida" required />
+        </div>
+        
+        <div class="form-group">
+          <label for="ubicacionTexto">Última ubicación vista (lo más específico posible)</label>
+          <input type="text" id="ubicacionTexto" v-model="localReportForm.ultimaUbicacion.texto" placeholder="Ej. Parque Central, cerca de la fuente" required />
+        </div>
 
-        <!-- Última ubicación -->
-        <input v-model="report.ultimaUbicacion.texto" placeholder="Última ubicación (texto)" />
-        <input type="number" step="any" v-model.number="report.ultimaUbicacion.coordinates[1]" placeholder="Latitud" />
-        <input type="number" step="any" v-model.number="report.ultimaUbicacion.coordinates[0]" placeholder="Longitud" />
-
-        <!-- Tipo de reporte -->
-        <select v-model="report.tipo" required>
-          <option value="" disabled>Seleccione tipo</option>
-          <option value="perdida">Perdida</option>
-          <option value="encontrada">Encontrada</option>
-          <option value="adopcion">Adopción</option>
-        </select>
-
-        <!-- Imagen -->
-        <input type="file" @change="$emit('imageSelected', $event)" accept="image/*" />
-        <img v-if="imagePreviewUrl" :src="imagePreviewUrl" class="image-preview" />
+        <div class="form-group">
+          <label for="recompensa">Recompensa (opcional, en Lempiras)</label>
+          <input type="number" id="recompensa" v-model.number="localReportForm.recompensa" placeholder="0" />
+        </div>
 
         <div class="modal-actions">
-          <button type="submit" class="btn-primary">{{ isEditing ? 'Guardar Cambios' : 'Guardar' }}</button>
-          <button type="button" class="btn-secondary" @click="$emit('close')">Cancelar</button>
+          <button type="button" @click="$emit('cancel')" class="btn-custom-secondary">Cancelar</button>
+          <button type="submit" :disabled="isSubmitting" class="btn-custom-primary">
+            {{ isSubmitting ? 'Creando Reporte...' : 'Crear Reporte' }}
+          </button>
         </div>
+
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
       </form>
     </div>
   </div>
 </template>
 
 <script setup>
-defineProps({
-  report: Object,
-  isEditing: Boolean,
-  imagePreviewUrl: String
+import { reactive } from 'vue';
+
+const props = defineProps({
+  pet: Object, // La mascota que se está reportando
+  isSubmitting: Boolean,
+  errorMessage: String,
 });
-defineEmits(['close', 'save', 'imageSelected']);
+
+const emit = defineEmits(['submit', 'cancel']);
+
+// Usamos una copia local para el formulario, para no modificar la prop
+const localReportForm = reactive({
+  fechaPerdida: '',
+  recompensa: 0,
+  ultimaUbicacion: {
+    texto: ''
+  }
+});
+
+const submitReport = () => {
+  // Al enviar, emitimos un objeto que combina los datos de la mascota y del formulario
+  const reportData = {
+    ...props.pet, // Incluye nombre, especie, raza, fotos, etc.
+    ...localReportForm, // Incluye fechaPerdida, recompensa y ubicacion
+    mascotaId: props.pet._id,
+    tipo: 'perdida'
+  };
+  emit('submit', reportData);
+};
 </script>
 
 <style scoped>

@@ -17,6 +17,11 @@ const reportSchema = new mongoose.Schema({
     trim: true
   },
 
+    mascotaOriginalId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Mascota'
+    },
+
   // --- Campos del Reporte ---
   tipo: { 
     type: String,

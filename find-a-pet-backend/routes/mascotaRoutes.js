@@ -1,50 +1,30 @@
-// backend/routes/mascotaRoutes.js
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
+const upload = require('../middleware/upload'); 
 
 const {
   crearMascota,
-  obtenerMisMascotas,
-  reportarMascotaPerdida,
   actualizarMascota,
-  marcarComoEncontrada,
-  obtenerMascotaPublico,
-  generarQrMascota,
-  obtenerMascotasPerdidas,
-  getRecentReports,
-  obtenerMascotasFiltradas 
+  eliminarMascota,
+  obtenerMisMascotas,
+  obtenerMisReportes,
+  obtenerTodosReportesPublicos,
+  obtenerMascotaPublica,
+  generarQrMascota
 } = require('../controllers/mascotaController');
 
-// Todas estas rutas están protegidas y requieren un token válido
+// --- RUTAS PROTEGIDAS (Requieren Login) ---
+router.post('/', verifyToken, upload.single('image'), crearMascota);
+router.put('/:id', verifyToken, upload.single('image'), actualizarMascota);
 
-// Crear una nueva mascota
-router.post('/', verifyToken, crearMascota);
-
-// Obtener las mascotas del usuario logueado
-router.get('/', verifyToken, obtenerMisMascotas);
-
-// Marcar una mascota como perdida
-router.put('/:id/reportar', verifyToken, reportarMascotaPerdida);
-
-// Actualizar una mascota
-router.put('/:id', verifyToken, actualizarMascota);
-
-// Marcar mascota como encontrada
-router.put('/:id/encontrada', verifyToken, marcarComoEncontrada);
-
-// Obtener mascota de forma pública (por ID)
-router.get('/:id/public', obtenerMascotaPublico);
-
-// Generar código QR para mascota
+router.delete('/:id', verifyToken, eliminarMascota);
+router.get('/mine', verifyToken, obtenerMisMascotas);
+router.get('/my-reports', verifyToken, obtenerMisReportes);
 router.get('/:id/qr', verifyToken, generarQrMascota);
 
-// Obtener mascotas perdidas (con filtros)
-router.get('/perdidas', obtenerMascotasPerdidas);
-
-// Obtener reportes recientes de los últimos 7 días
-router.get('/recientes', getRecentReports);
-
-router.get('/filtradas', obtenerMascotasFiltradas);
+// --- RUTAS PÚBLICAS ---
+router.get('/public', obtenerTodosReportesPublicos);
+router.get('/:id/public', obtenerMascotaPublica);
 
 module.exports = router;

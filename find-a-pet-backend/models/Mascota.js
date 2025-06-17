@@ -1,4 +1,3 @@
-// backend/models/Mascota.js
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
@@ -8,31 +7,54 @@ const mascotaSchema = new Schema({
     ref: 'User',
     required: true
   },
-  nombre: { type: String, required: true },
-  especie: { type: String, required: true },
-  raza: { type: String },
-  edad: { type: Number },
-  colores: [String],
-  descripcion: { type: String, required: true },
-  fotos: [String],
-  
-  // --- CORRECCIÓN EN EL CAMPO 'estado' ---
+  nombre: {
+    type: String,
+    required: [true, 'El nombre es requerido'],
+    trim: true
+  },
+  especie: {
+    type: String,
+    required: [true, 'La especie es requerida'],
+    trim: true
+  },
+  raza: {
+    type: String,
+    trim: true
+  },
+  descripcion: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  fotos: {
+    type: [String],
+    default: []
+  },
   estado: {
     type: String,
-    enum: ['en-casa', 'perdida', 'encontrada'], // Usamos guiones, no espacios
-    default: 'en-casa' // Usamos guiones, no espacios
+    enum: ['en-casa', 'perdida', 'adopcion', 'encontrada'],
+    default: 'en-casa'
   },
-  // ------------------------------------
-  
+  ciudad: {
+    type: String,
+    required: true,
+    trim: true
+  },
   ultimaUbicacion: {
-    type: { type: String, enum: ['Point'] },
-    coordinates: { type: [Number] }
+    texto: {
+      type: String,
+      trim: true
+    }
   },
-  fechaPerdida: { type: Date },
-  recompensa: { type: Number, default: 0 }
-
-}, { timestamps: true });
-
-mascotaSchema.index({ ultimaUbicacion: '2dsphere' });
+  fechaPerdida: {
+    type: Date
+  },
+  recompensa: {
+    type: Number,
+    default: 0
+  }
+}, {
+  timestamps: true // Añade createdAt y updatedAt
+});
 
 module.exports = mongoose.model('Mascota', mascotaSchema);
