@@ -185,6 +185,7 @@ onMounted(async () => {
   try {
     const profileResponse = await AuthService.getProfileData();
     user.value = profileResponse.data.user;
+    genericReport.ciudad = user.value.ciudad;
     // Cargar mascotas y reportes en paralelo para mejorar el rendimiento
     await Promise.all([fetchMisMascotas(), fetchMyReports()]);
   } catch (err) {
@@ -430,28 +431,45 @@ const handleReportLost = async (reportDataFromModal) => {
 };
 
 // --- Lógica de Modales Genéricos y de Usuario ---
-const openGenericReportModal = () => { showGenericReportModal.value = true; };
-const closeGenericReportModal = () => { showGenericReportModal.value = false; Object.assign(genericReport, { tipo: '', nombre: '', especie: '', raza: '', ciudad: '', descripcion: '', recompensa: 0, imagen: null, fechaPerdida: '' }); };
+const openGenericReportModal = () => {
+  // Reseteamos el formulario genérico antes de abrirlo
+  Object.assign(genericReport, {
+    tipo: 'perdida',
+    nombre: '',
+    especie: '',
+    raza: '',
+    ciudad: user.value?.ciudad || '', // Usamos la ciudad del usuario
+    descripcion: '',
+    recompensa: 0,
+    imagen: null,
+    fechaPerdida: ''
+  });
+  modalError.value = '';
+  showGenericReportModal.value = true;
+};
+const closeGenericReportModal = () => { showGenericReportModal.value = false; };
 
-const handleGenericReportSubmit = async () => {
+const handleGenericReportSubmit = async (reportData) => {
   isSubmitting.value = true;
+  modalError.value = '';
   try {
     const formData = new FormData();
-    Object.keys(genericReport).forEach(key => {
-      if(key === 'imagen' && genericReport[key]){
-        formData.append('imagen', genericReport.imagen);
-      } else if (genericReport[key] !== null) {
-        formData.append(key, genericReport[key]);
+    // Iteramos sobre el objeto que nos llega del modal para construir el FormData
+    for (const key in reportData) {
+      if (reportData[key] !== null) {
+        formData.append(key, reportData[key]);
       }
-    });
-
-    await ReportService.createReportWithImage(formData);
-    await fetchMyReports();
+    }
+    
+    // Llamada al método corregido del servicio
+    await ReportService.createReport(formData);
+    
+    await fetchMyReports(); // Actualizamos la lista de reportes
     closeGenericReportModal();
-    Swal.fire('Éxito', '¡Reporte creado con éxito!', 'success');
+    Swal.fire('¡Éxito!', 'Reporte creado correctamente.', 'success');
   } catch (err) {
     console.error('Error al crear reporte:', err);
-    Swal.fire('Error', 'No se pudo crear el reporte.', 'error');
+    modalError.value = 'No se pudo crear el reporte. Revisa los campos.';
   } finally {
     isSubmitting.value = false;
   }
