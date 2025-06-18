@@ -23,6 +23,10 @@ class ReportService {
     return apiClient.get('/reports', { params: filters });
   }
 
+  getReportDetails(reportId) {
+    return apiClient.get(`/reports/${reportId}`);
+  }
+
   // Obtener los reportes del usuario logueado
   getMyReports() {
     return apiClient.get('/reports/mine');

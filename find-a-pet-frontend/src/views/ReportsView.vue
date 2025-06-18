@@ -33,21 +33,30 @@
             <h3>{{ reporte.nombre }}</h3>
             <p>{{ reporte.especie }} - {{ reporte.raza || 'Mestizo' }}</p>
             <p class="report-status" :class="reporte.tipo">{{ reporte.tipo.replace('perdida', 'Mascota Perdida').replace('encontrada', 'Mascota Encontrada') }}</p>
-            <router-link :to="`/report-details/${reporte._id}`" class="btn-more">Ver Más</router-link>
+            <button @click="openDetailsModal(reporte._id)" class="btn-more">Ver Más</button>
           </div>
         </div>
       </div>
     </div>
   </div>
+
+  <ReportDetailsModal 
+  v-if="showDetailsModal" 
+  :report="selectedReport" 
+  @close="closeDetailsModal" 
+/>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import ReportService from '@/services/reportService';
 import placeholderImage from '@/assets/placeholder-pet.png';
-
+import ReportDetailsModal from '@/components/profileComponents/modals/ReportDetailsModal.vue';
 const reports = ref([]);
 const loading = ref(true);
+
+const showDetailsModal = ref(false);
+const selectedReport = ref(null);
 
 // Objeto reactivo para manejar los filtros
 const filters = reactive({
@@ -55,6 +64,31 @@ const filters = reactive({
   especie: '',
   tipo: ''
 });
+
+const openDetailsModal = async (reportId) => {
+  if (!reportId) return;
+  
+  // 1. Mostramos el modal inmediatamente pero sin datos
+  selectedReport.value = null; // Aseguramos que no haya datos viejos
+  showDetailsModal.value = true;
+  
+  try {
+    const response = await ReportService.getReportDetails(reportId);
+    // 2. Una vez que tenemos los datos, los asignamos.
+    //    El modal se actualizará automáticamente.
+    selectedReport.value = response.data;
+  } catch (error) {
+    console.error("No se pudieron cargar los detalles del reporte:", error);
+    // 3. Si falla, cerramos el modal y mostramos una alerta
+    closeDetailsModal();
+    alert("Error al cargar los detalles del reporte.");
+  }
+};
+
+const closeDetailsModal = () => {
+  showDetailsModal.value = false;
+  selectedReport.value = null;
+};
 
 // Función para buscar y cargar los reportes
 const fetchReports = async () => {

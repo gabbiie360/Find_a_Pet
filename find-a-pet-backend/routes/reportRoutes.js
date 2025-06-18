@@ -9,7 +9,8 @@ const {
   getMyReports,
   updateReport,
   resolveReport,
-  deleteReport
+  deleteReport,
+  getReportById
 } = require('../controllers/reportController');
 
 const verifyToken = require('../middleware/verifyToken');
@@ -17,11 +18,14 @@ const upload = require('../middleware/upload'); // multer para procesar la image
 
 // La ruta ahora es mucho más limpia
 router.post('/', verifyToken, upload.single('imagen'), createReport); // Usamos 'createReport'
+router.get('/:id', getReportById);
 
 // Rutas adicionales (sin cambios)
 router.get('/', getAllReports);
 router.get('/mine', verifyToken, getMyReports);
+router.get('/:id', getReportById);
 router.put('/:id', verifyToken, updateReport);
+router.put('/:id/resolve', verifyToken, resolveReport);
 router.delete('/:id', verifyToken, deleteReport);
 router.put('/:reportId/resolve', verifyToken, resolveReport);
 

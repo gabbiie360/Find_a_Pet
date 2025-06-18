@@ -18,6 +18,22 @@ const uploadToCloudinary = (buffer) => {
   });
 };
 
+const getReportById = async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id)
+      // Usamos .populate() para traer los datos del usuario que creó el reporte
+      .populate('creadoPor', 'nombre telefono email fotoPerfil'); 
+
+    if (!report) {
+      return res.status(404).json({ msg: 'Reporte no encontrado' });
+    }
+    res.status(200).json(report);
+  } catch (err) {
+    console.error("Error en getReportById:", err);
+    res.status(500).json({ msg: 'Error al obtener el reporte' });
+  }
+};
+
 // --- CREAR UN NUEVO REPORTE (AHORA CON LÓGICA DE UPLOAD) ---
 const createReport = async (req, res) => {
   try {
@@ -207,5 +223,6 @@ module.exports = {
   getAllReports,
   getMyReports,
   updateReport,
-  deleteReport
+  deleteReport,
+  getReportById
 };
