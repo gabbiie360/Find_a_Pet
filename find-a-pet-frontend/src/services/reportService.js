@@ -19,8 +19,8 @@ class ReportService {
   }
 
   // Obtener todos los reportes públicos
-  getAllReports() {
-    return apiClient.get('/reports');
+  getAllReports(filters = {}) {
+    return apiClient.get('/reports', { params: filters });
   }
 
   // Obtener los reportes del usuario logueado

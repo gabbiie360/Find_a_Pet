@@ -2,7 +2,7 @@
   <div class="content-section">
     <div class="section-header">
       <h2>Mis Reportes Activos</h2>
-      <button @click="$emit('openGenericReportModal')" class="btn-primary">Crear Reporte</button>
+      <button @click="$emit('openGenericReportModal')" class="btn-custom-primary">Crear Reporte</button>
     </div>
     <div v-if="activeReports && activeReports.length > 0" class="reports-grid">
       <div v-for="reporte in activeReports" :key="reporte._id" class="report-card-active">
