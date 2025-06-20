@@ -143,3 +143,33 @@ exports.updateUser = async (req, res) => {
     res.status(200).json(updatedUser);
   } catch (err) { res.status(500).json({ msg: 'Error del servidor al actualizar usuario.' }); }
 };
+
+// Obtener reportes con búsqueda (nombre o ciudad)
+exports.getAdminReports = async (req, res) => {
+  try {
+    const search = req.query.search?.toLowerCase() || '';
+    const query = {
+      $or: [
+        { nombre: { $regex: search, $options: 'i' } },
+        { ciudad: { $regex: search, $options: 'i' } }
+      ]
+    };
+
+    const reports = await Report.find(query)
+      .populate('creadoPor', 'nombre email')
+      .sort({ fecha: -1 });
+
+    res.json(reports);
+  } catch (err) {
+    res.status(500).json({ msg: 'Error al obtener reportes.' });
+  }
+};
+
+exports.deleteAdminReport = async (req, res) => {
+  try {
+    await Report.findByIdAndDelete(req.params.id);
+    res.json({ msg: 'Reporte eliminado' });
+  } catch (err) {
+    res.status(500).json({ msg: 'Error al eliminar reporte.' });
+  }
+};

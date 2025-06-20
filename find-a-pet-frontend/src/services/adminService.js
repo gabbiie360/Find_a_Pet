@@ -13,6 +13,16 @@ class AdminService {
   createPet(petData) { return apiClient.post('/admin/mascotas', petData); }
   updatePet(petId, petData) { return apiClient.put(`/admin/mascotas/${petId}`, petData); }
   deletePet(petId) { return apiClient.delete(`/admin/mascotas/${petId}`); }
+ getReports(term = '') {
+  return apiClient.get('/admin/reports', {
+    params: { search: term }
+  });
+}
+deleteReport(id) {
+  return apiClient.delete(`/admin/reports/${id}`);
+}
+
+
 }
 
 export default new AdminService();

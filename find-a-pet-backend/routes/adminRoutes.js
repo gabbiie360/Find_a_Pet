@@ -1,7 +1,9 @@
 // backend/routes/adminRoutes.js
 const express = require('express');
 const router = express.Router();
-const verifyAdmin = require('../middleware/verifyAdmin'); // Nuestro nuevo guardia
+const verifyAdmin = require('../middleware/verifyAdmin'); 
+
+const adminController = require('../controllers/adminController');
 const { 
     getDashboardStats, 
     getAllUsers, 
@@ -24,5 +26,6 @@ router.post('/users', verifyAdmin, createUser);
 router.put('/users/:id', verifyAdmin, updateUser);
 router.post('/mascotas', verifyAdmin, createPet);
 router.put('/mascotas/:id', verifyAdmin, updatePet);
-
+router.get('/reports', adminController.getAdminReports);
+router.delete('/reports/:id', adminController.deleteAdminReport);
 module.exports = router;

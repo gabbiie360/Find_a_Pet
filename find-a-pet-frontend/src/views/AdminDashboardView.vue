@@ -6,6 +6,8 @@
         <a href="#" @click.prevent="switchToView('stats')" :class="{ active: currentView === 'stats' }">Estadísticas</a>
         <a href="#" @click.prevent="switchToView('users')" :class="{ active: currentView === 'users' }">Gestionar Usuarios</a>
         <a href="#" @click.prevent="switchToView('pets')" :class="{ active: currentView === 'pets' }">Gestionar Mascotas</a>
+        <a href="#" @click.prevent="switchToView('reports')" :class="{ active: currentView === 'reports' }">Gestionar Reportes</a>
+
       </nav>
     </aside>
 
@@ -93,6 +95,59 @@
           </table>
         </div>
       </div>
+
+      <!-- Vista de Reportes -->
+<div v-show="currentView === 'reports'" class="table-view">
+  <div class="view-header">
+    <h1>Gestionar Reportes</h1>
+    <form @submit.prevent="fetchReports" class="search-form">
+      <input type="text" v-model="reportSearchTerm" @input="handleReportSearchInput" placeholder="Buscar por nombre o ciudad...">
+      <button type="submit">Buscar</button>
+    </form>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre Mascota</th>
+        <th>Tipo</th>
+        <th>Ciudad</th>
+        <th>Creado Por</th>
+        <th>Fecha</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-if="reports.length === 0">
+        <td colspan="6" class="no-results">No se encontraron reportes.</td>
+      </tr>
+      <tr v-for="report in reports" :key="report._id">
+        <td>{{ report.nombre || 'N/A' }}</td>
+        <td>{{ report.tipo }}</td>
+        <td>{{ report.ciudad }}</td>
+        <td>{{ report.creadoPor?.nombre || 'Desconocido' }}</td>
+        <td>{{ new Date(report.fecha).toLocaleDateString() }}</td>
+        <td class="action-buttons">
+          <button @click="openReportModal(report)" class="btn-edit">Editar</button>
+          <button @click="deleteReport(report._id)" class="btn-delete">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </main>
 
     <!-- MODAL PARA AÑADIR/EDITAR USUARIO -->
@@ -234,6 +289,8 @@ const switchToView = async (view) => {
     currentView.value = view;
     if (view === 'users') { userSearchTerm.value = ''; await fetchUsers(); }
     if (view === 'pets') { petSearchTerm.value = ''; await fetchPets(); }
+    if (view === 'reports') { reportSearchTerm.value = ''; await fetchReports(); }
+
 };
 
 // --- LÓGICA DEL CRUD DE USUARIOS ---
@@ -342,18 +399,66 @@ const chartData = computed(() => {
         ]
     };
 });
+
+
 const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
 };
+
+// --- LÓGICA DEL CRUD DE REPORTES ---
+const reports = ref([]);
+const reportSearchTerm = ref('');
+let reportSearchTimeout = null;
+
+const fetchReports = async () => {
+  try {
+    const res = await AdminService.getReports(reportSearchTerm.value);
+    reports.value = res.data;
+  } catch (err) {
+    console.error("Error cargando reportes:", err);
+  }
+};
+const handleReportSearchInput = () => {
+  clearTimeout(reportSearchTimeout);
+  reportSearchTimeout = setTimeout(() => { fetchReports(); }, 500);
+};
+
+
+
+
+
+const openReportModal = (report) => {
+  console.log("Abrir modal de edición:", report);
+};
+
+const deleteReport = async (reportId) => {
+  if (confirm('¿Seguro que deseas eliminar este reporte?')) {
+    try {
+      await AdminService.deleteReport(reportId);
+      reports.value = reports.value.filter(r => r._id !== reportId);
+    } catch (err) {
+      console.error("Error al eliminar reporte:", err);
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
 </script>
 
 <style scoped>
 /* ESTILOS COMPLETOS (SIN CAMBIOS) */
 .admin-body { display: flex; min-height: 100vh; background-color: #f8f9fa; font-family: 'Poppins', sans-serif; }
 .sidebar { width: 250px; background-color: #343a40; color: white; padding-top: 20px; flex-shrink: 0; position: fixed; height: 100%; }
-.main-content { margin-left: 250px; flex-grow: 1; padding: 40px; }
+.main-content { margin-left: 250px; flex-grow: 1; padding: 40px; margin-top: 70px;}
 .sidebar-header { font-size: 1.5rem; text-align: center; margin-bottom: 30px; font-weight: 600; }
 .sidebar-nav a { display: block; color: #adb5bd; padding: 15px 20px; text-decoration: none; transition: all 0.2s; border-left: 3px solid transparent; }
 .sidebar-nav a:hover { background-color: #495057; color: white; }
